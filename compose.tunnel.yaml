@@ -1,0 +1,9 @@
+services:
+  grafana:
+    networks:
+      tunnel:
+        aliases: [graf-chess-dashboard]
+networks:
+  tunnel:
+    external: true
+    name: ${CLOUDFLARE_NETWORK:?Set the existing cloudflared Docker network name}

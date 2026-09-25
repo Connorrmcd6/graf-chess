@@ -1,0 +1,16 @@
+{
+  "name": "Chess Club - 12 Week Challenge",
+  "start": "2026-08-08T00:00:00+02:00",
+  "end": "2026-10-31T00:00:00+02:00",
+  "timezone": "Africa/Johannesburg",
+  "minimum_games": 20,
+  "players": [
+    {"username": "cmcd_6", "name": "Connor"},
+    {"username": "alwit09", "name": "Alex"},
+    {"username": "niklaswietzorrek", "name": "Nik"},
+    {"username": "justsimplicity", "name": "Dan"},
+    {"username": "jmp1397", "name": "Jesse"},
+    {"username": "fred_andersen", "name": "Frederik"},
+    {"username": "jaystray69", "name": "Jay"}
+  ]
+}

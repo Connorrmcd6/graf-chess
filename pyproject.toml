@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graf-chess"
+version = "0.1.0"
+description = "A self-hosted Chess.com competition dashboard"
+requires-python = ">=3.12"
+dependencies = ["psycopg[binary]==3.2.10"]
+
+[dependency-groups]
+dev = ["pytest==8.4.2"]
+
+[project.scripts]
+chess-collector = "collector.main:main"
+
+[tool.setuptools.package-data]
+collector = ["schema.sql"]
+
+[tool.setuptools.packages.find]
+include = ["collector*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
