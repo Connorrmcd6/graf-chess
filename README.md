@@ -72,7 +72,7 @@ Finalization is refused before the grace period, without a recent successful ful
 
 ## Recurring mistakes (engine analysis)
 
-The `analyser` service runs Stockfish over collected standard games from the last 30 days, using the PGNs the collector has already cached; nothing extra is fetched from Chess.com. It works through any backlog, then checks for new games every 30 minutes. The **Recurring mistakes** dashboard shows the results.
+The `analyser` service runs Stockfish over collected standard games from the last 60 days, using the PGNs the collector has already cached; nothing extra is fetched from Chess.com. It works through any backlog, then checks for new games every 30 minutes. The **Recurring mistakes** dashboard shows the results.
 
 - **Same position, same mistake:** each position gets a fingerprint (pieces, side to move, castling, ignoring move counters, so transpositions match). When you play the same bad move from the same position in two or more games, it is listed with the engine's preferred move and a Lichess link to the position.
 - **Pawn structures:** after move 10, moves are also grouped by both sides' pawns and which wing each king is on. This shows similar middlegames where you keep going wrong.
@@ -82,7 +82,7 @@ The `analyser` service runs Stockfish over collected standard games from the las
 
 Results are stored in `chess.analysed_games` and `chess.move_analysis` and exposed through the `dashboard.player_moves`, `errors`, `repeated_mistakes`, `repeated_positions`, `structure_mistakes` and `analysis_status` views. A game whose PGN can't be analysed is recorded with `status = 'error'` and skipped; delete its `chess.analysed_games` row to retry it. If Stockfish itself crashes, the service exits and Docker restarts it without marking any game as failed.
 
-On a Pi 5 a rapid game takes about 15 seconds at the defaults (depth 14, at most 1 second per position, 2 threads), so the first pass over 30 days of games (about 800 for the club) takes 3-4 hours. After that, new games are analysed within the hour. Games analysed earlier stay in the results as they age past 30 days. Set `ANALYSIS_DAYS` in `.env` to look further back (`0` analyses everything, about 15 seconds per extra game). `ANALYSIS_THREADS` and `ANALYSIS_DEPTH` trade speed against CPU left for PostgreSQL and Grafana. To run a one-off pass yourself, stop the service first; only one analyser can run at a time:
+On a Pi 5 a rapid game takes about 15 seconds at the defaults (depth 14, at most 1 second per position, 2 threads), so the first pass over 60 days of games (about 1,900 for the club) takes 6-7 hours. After that, new games are analysed within the hour. Games analysed earlier stay in the results as they age past the window. Set `ANALYSIS_DAYS` in `.env` to change the window (`0` analyses everything, about 15 seconds per extra game). `ANALYSIS_THREADS` and `ANALYSIS_DEPTH` trade speed against CPU left for PostgreSQL and Grafana. To run a one-off pass yourself, stop the service first; only one analyser can run at a time:
 
 ```sh
 docker compose stop analyser
@@ -90,6 +90,21 @@ docker compose run --rm analyser --all
 ```
 
 Stockfish judges *that* a move was worse and what was better, not *why* in human terms. Look at the top repeated positions and structures on Lichess, or ask Claude to explain the recurring idea behind them.
+
+## Mistakes app (phone)
+
+The `web` service is a small phone-first app for the engine analysis, in the same style as mealbot. Add it to your home screen from the browser's share menu. It has four tabs:
+
+- **Patterns:** accuracy, error rate and blunders, the bad moves you repeat from the same position, and where errors happen (game phase, clock, openings).
+- **Review:** your recent mistakes and blunders, newest first.
+- **Drill:** a position you got wrong; find the move, then tap to see what you played and what the engine wanted. Positions you've misplayed more than once come first. The score is kept on the phone only.
+- **Games:** recent games with our accuracy and Chess.com's, each opening a list of that game's errors.
+
+Every board shows your move as a red arrow and the engine's as a green one, and every position has an **Open in Lichess** button. Boards are drawn by the server, so the app loads nothing from other sites. It connects as Grafana's read-only database role and can't change anything.
+
+It is public, like the Grafana dashboards, and shows the same public chess data. It listens on loopback port 8083; publish it through the same Cloudflare Tunnel as Grafana by adding a second public hostname (for example `mistakes.your-domain.example`) whose service is `http://127.0.0.1:8083` (or `http://graf-chess-web-1:8083` if cloudflared runs in Docker on the same network). Grafana and the app need separate hostnames because both use paths such as `/api`.
+
+Because it is public, identical API requests are answered from a 60-second in-memory cache, at most four database queries run at once (Grafana's read-only role allows ten connections), and pages send a Content-Security-Policy that blocks scripts, images and frames from other sites. Visitors pick their own player; the choice and the drill score stay on their phone.
 
 ## Backups and recovery
 

@@ -1,0 +1,12 @@
+{
+  "name": "Chess mistakes",
+  "short_name": "Chess",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f3ec",
+  "theme_color": "#2f6b4f",
+  "icons": [
+    {"src": "/static/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15120f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chess">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" href="/static/icon.png">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<link rel="stylesheet" href="/static/app.css">
+<title>Review - Chess</title>
+</head>
+<body>
+<main class="page"><div id="content" class="stack"></div></main>
+<script src="/static/app.js"></script>
+<script>
+let kind = store("reviewKind") || "serious";
+let offset = 0;
+const filter = h("div", { class: "seg", role: "group" });
+const list = h("div", { class: "stack" });
+const more = h("button", { class: "btn block hidden", onclick: () => load(true) }, "Load more");
+
+function drawFilter() {
+  filter.replaceChildren(...[["serious", "Mistakes"], ["blunder", "Blunders"], ["all", "All errors"]].map(([key, label]) =>
+    h("button", { type: "button", "aria-pressed": String(kind === key), onclick: () => { kind = key; store("reviewKind", key); drawFilter(); load(); } }, label)));
+}
+
+async function load(append = false) {
+  offset = append ? offset + 20 : 0;
+  let d;
+  try { d = await api.get("/api/errors?" + query({ kind, offset })); } catch (e) { return fail(e); }
+  document.getElementById("sub").textContent = "Newest first · tap a board to enlarge";
+  const cards = d.errors.map((e) => positionCard(e));
+  if (append) list.append(...cards);
+  else list.replaceChildren(...(cards.length ? cards : [empty("Nothing here", "No errors of this kind in analysed games.")]));
+  more.classList.toggle("hidden", !d.more);
+}
+
+drawFilter();
+document.getElementById("content").replaceChildren(filter, legend(), list, more);
+setup("Review", load);
+</script>
+</body>
+</html>

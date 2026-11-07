@@ -38,4 +38,4 @@ jobs:
           uv run --locked scripts/setup.py
           docker compose config --quiet
       - name: Build container images
-        run: docker compose build collector analyser db
+        run: docker compose build collector analyser web db

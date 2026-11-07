@@ -233,15 +233,15 @@ single_player_variable = {
 }
 mistakes = dashboard("chess-mistakes", "Chess Club | Recurring mistakes", [
     text_panel("Do you keep making the same mistakes?",
-               "**Choose a player at the top to begin.** Stockfish checks every move of each game from the last 30 days. A move is an **error** when it drops your winning chances by "
+               "**Choose a player at the top to begin.** Stockfish checks every move of each recent game (the last 60 days by default). A move is an **error** when it drops your winning chances by "
                "10+ points (inaccuracy), 20+ (mistake) or 30+ (blunder). **Positional** errors lose ground without losing "
                "material; **tactical** ones allow or miss a combination. The three tables at the top cover all analysed "
                "games, whatever the date range or mode; the charts below follow the filters. "
                "**Position** opens the position on Lichess.", 0),
-    panel("Last 30 days analysed", """SELECT sum(analysed_last_30_days) || ' / ' || sum(games_last_30_days) AS analysed
+    panel("Games analysed", """SELECT sum(analysed_in_window) || ' / ' || sum(games_in_window) AS analysed
           FROM dashboard.analysis_status WHERE username IN (${player:sqlstring})""", 0, 3, 6, 3, "stat",
-          description="Standard games from the last 30 days for the selected players. Older games are only analysed "
-                      "if ANALYSIS_DAYS is raised; games analysed earlier stay on the dashboard."),
+          description="Standard games inside the analyser's window (ANALYSIS_DAYS, 60 by default) for the selected players. "
+                      "Games analysed earlier stay on the dashboard after they leave the window."),
     panel("Errors per 100 moves", f"""SELECT round(100.0 * count(*) FILTER (WHERE is_error) / nullif(count(*), 0), 1) AS errors
           FROM dashboard.player_moves WHERE {MOVE_FILTER}""", 12, 3, 6, 3, "stat"),
     panel("Average accuracy", f"""SELECT avg(stockfish_accuracy) AS accuracy FROM dashboard.recent_games

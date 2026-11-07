@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15120f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chess">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" href="/static/icon.png">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<link rel="stylesheet" href="/static/app.css">
+<title>Patterns - Chess</title>
+</head>
+<body>
+<main class="page"><div id="content" class="stack"></div></main>
+<script src="/static/app.js"></script>
+<script>
+async function load() {
+  const content = document.getElementById("content");
+  let d;
+  try { d = await api.get("/api/overview?" + query()); } catch (e) { return fail(e); }
+  const s = d.summary;
+  document.getElementById("sub").textContent = s.games ? `${s.games} analysed games` : "";
+  if (!s.games) {
+    return content.replaceChildren(empty("Nothing analysed yet", "Recent games are analysed automatically. Check back soon."));
+  }
+  const tile = (label, value, sub) => h("div", { class: "tile" }, h("div", { class: "label" }, label), h("div", { class: "value" }, value ?? "–"), sub && h("div", { class: "sub" }, sub));
+  const bars = (items, max) => h("div", { class: "card bars" }, items.map((b) =>
+    h("div", { class: "bar" }, h("span", { class: "ellipsis" }, b.label),
+      h("div", { class: "track" }, h("div", { class: "fill", style: `width:${Math.min(100, 100 * b.rate / max)}%` })),
+      h("span", { class: "num" }, b.rate))));
+  const maxRate = Math.max(1, ...d.phases.map((b) => b.rate), ...d.clock.map((b) => b.rate));
+  const shown = new Set(d.repeated.map((r) => r.position_key));
+  const positions = d.positions.filter((p) => !shown.has(p.position_key));
+  content.replaceChildren(
+    h("div", { class: "tiles" },
+      tile("Accuracy", s.accuracy != null ? `${s.accuracy}%` : null, s.chesscom != null ? `Chess.com ${s.chesscom}%` : "Stockfish, Lichess formula"),
+      tile("Errors / 100 moves", s.errors_per_100, "inaccuracy or worse"),
+      tile("Blunders", s.blunders, `in ${s.games} games`),
+      tile("Positional", s.positional_pct != null ? `${s.positional_pct}%` : null, "of your errors")),
+    ...section("Same mistake again",
+      d.repeated.length
+        ? d.repeated.map((r) => positionCard({ ...r, classification: null }, { note: `played ${r.times}×` }))
+        : [empty("No repeats yet", "No bad move played twice from the same position. That's good news.")]),
+    ...(positions.length ? section("Positions you keep misplaying",
+      ...positions.map((p) => positionCard({ ...p, san: p.wrong_san, uci: p.wrong_uci },
+        { note: `${p.errors} errors in ${p.games} games` }))) : []),
+    ...section("Errors per 100 moves", bars(d.phases, maxRate), h("div", { style: "height:8px" }),
+      bars(d.clock.map((c) => ({ ...c, label: c.label + " left" })), maxRate)),
+    ...(d.openings.length ? section("Toughest openings", h("div", { class: "list" }, d.openings.map((o) =>
+      h("div", { class: "list-row" }, h("div", { class: "grow" }, h("div", { class: "ellipsis" }, o.label),
+        h("div", { class: "small muted" }, `${o.games} games`)),
+        h("div", { class: "acc" }, h("b", {}, o.per_game), h("span", { class: "small muted" }, "errors/game")))))) : []),
+  );
+}
+setup("Patterns", load);
+</script>
+</body>
+</html>

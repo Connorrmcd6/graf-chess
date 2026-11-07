@@ -57,7 +57,8 @@ SELECT p.username, u.name, g.id AS game_id, g.url, g.ended_at, g.rated, g.mode, 
             WHEN m.clock_seconds < 30 THEN '10-30s'
             WHEN m.clock_seconds < 60 THEN '30-60s'
             WHEN m.clock_seconds < 180 THEN '1-3min'
-            ELSE '3min+' END AS clock_bucket
+            ELSE '3min+' END AS clock_bucket,
+       m.uci, m.best_uci, m.eval_before AS eval_before_cp
 FROM chess.move_analysis m
 JOIN chess.analysed_games a ON a.game_id = m.game_id AND a.status = 'ok'
 JOIN chess.games g ON g.id = m.game_id
@@ -139,6 +140,12 @@ LEFT JOIN LATERAL (
     FROM chess.move_analysis x WHERE x.game_id = a.game_id AND x.colour = p.colour
 ) m ON a.game_id IS NOT NULL;
 
+-- The window the analyser is configured for (ANALYSIS_DAYS), recorded on startup so the dashboards can show progress.
+CREATE TABLE IF NOT EXISTS chess.analysis_settings (
+    id boolean PRIMARY KEY DEFAULT true CHECK (id),
+    days integer NOT NULL
+);
+
 CREATE OR REPLACE VIEW dashboard.analysis_status AS
 SELECT u.username, u.name,
        count(g.id) AS games,
@@ -146,11 +153,16 @@ SELECT u.username, u.name,
        count(a.game_id) FILTER (WHERE a.status = 'error') AS failed,
        count(g.id) FILTER (WHERE g.ended_at >= now() - interval '30 days') AS games_last_30_days,
        count(a.game_id) FILTER (WHERE a.status = 'ok' AND g.ended_at >= now() - interval '30 days') AS analysed_last_30_days,
-       max(a.analysed_at) AS last_analysed_at
+       max(a.analysed_at) AS last_analysed_at,
+       max(s.days) AS window_days,
+       count(g.id) FILTER (WHERE in_window) AS games_in_window,
+       count(a.game_id) FILTER (WHERE a.status = 'ok' AND in_window) AS analysed_in_window
 FROM chess.players u
 JOIN chess.performances p ON p.username = u.username
 JOIN chess.games g ON g.id = p.game_id AND g.rules = 'chess'
 LEFT JOIN chess.analysed_games a ON a.game_id = g.id
+LEFT JOIN chess.analysis_settings s ON true
+CROSS JOIN LATERAL (SELECT coalesce(s.days, 30) = 0 OR g.ended_at >= now() - make_interval(days => coalesce(s.days, 30)) AS in_window) w
 GROUP BY u.username, u.name;
 
 GRANT SELECT ON dashboard.player_moves, dashboard.repeated_mistakes, dashboard.repeated_positions,

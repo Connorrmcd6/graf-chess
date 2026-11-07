@@ -503,6 +503,10 @@ def main(argv=None) -> int:
             return 1
         conn.commit()
         ensure_schema(conn)
+        with conn.transaction():
+            conn.execute("""INSERT INTO chess.analysis_settings (days) VALUES (%s)
+                            ON CONFLICT (id) DO UPDATE SET days = EXCLUDED.days""", (settings.days,))
+        log.info("Analysing games from the last %s", f"{settings.days} days" if settings.days else "any date")
         with open_engine(settings) as engine:
             log.info("Using %s, depth %d, %d threads", engine.id.get("name"), settings.depth, settings.threads)
             while not stop.is_set():

@@ -29,14 +29,14 @@
       },
       "options": {
         "mode": "markdown",
-        "content": "**Choose a player at the top to begin.** Stockfish checks every move of each game from the last 30 days. A move is an **error** when it drops your winning chances by 10+ points (inaccuracy), 20+ (mistake) or 30+ (blunder). **Positional** errors lose ground without losing material; **tactical** ones allow or miss a combination. The three tables at the top cover all analysed games, whatever the date range or mode; the charts below follow the filters. **Position** opens the position on Lichess."
+        "content": "**Choose a player at the top to begin.** Stockfish checks every move of each recent game (the last 60 days by default). A move is an **error** when it drops your winning chances by 10+ points (inaccuracy), 20+ (mistake) or 30+ (blunder). **Positional** errors lose ground without losing material; **tactical** ones allow or miss a combination. The three tables at the top cover all analysed games, whatever the date range or mode; the charts below follow the filters. **Position** opens the position on Lichess."
       },
       "id": 1
     },
     {
-      "title": "Last 30 days analysed",
+      "title": "Games analysed",
       "type": "stat",
-      "description": "Standard games from the last 30 days for the selected players. Older games are only analysed if ANALYSIS_DAYS is raised; games analysed earlier stay on the dashboard.",
+      "description": "Standard games inside the analyser's window (ANALYSIS_DAYS, 60 by default) for the selected players. Games analysed earlier stay on the dashboard after they leave the window.",
       "gridPos": {
         "x": 0,
         "y": 3,
@@ -54,7 +54,7 @@
             "type": "postgres",
             "uid": "chess-postgres"
           },
-          "rawSql": "SELECT sum(analysed_last_30_days) || ' / ' || sum(games_last_30_days) AS analysed\n          FROM dashboard.analysis_status WHERE username IN (${player:sqlstring})",
+          "rawSql": "SELECT sum(analysed_in_window) || ' / ' || sum(games_in_window) AS analysed\n          FROM dashboard.analysis_status WHERE username IN (${player:sqlstring})",
           "format": "table",
           "rawQuery": true
         }

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15120f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chess">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" href="/static/icon.png">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<link rel="stylesheet" href="/static/app.css">
+<title>Games - Chess</title>
+</head>
+<body>
+<main class="page"><div id="content" class="stack"></div></main>
+<script src="/static/app.js"></script>
+<script>
+let offset = 0;
+const list = h("div", { class: "list" });
+const more = h("button", { class: "btn block hidden", style: "margin-top:12px", onclick: () => load(true) }, "Load more");
+const LETTER = { win: "W", loss: "L", draw: "D", unknown: "?" };
+
+function row(g) {
+  const errs = [g.blunders && `${g.blunders} blunder${g.blunders > 1 ? "s" : ""}`, g.mistakes && `${g.mistakes} mistake${g.mistakes > 1 ? "s" : ""}`].filter(Boolean).join(", ");
+  return h("a", { class: "list-row", href: `/game?id=${encodeURIComponent(g.game_id)}` },
+    h("div", { class: `result ${g.outcome}` }, LETTER[g.outcome] || "?"),
+    h("div", { class: "grow" },
+      h("div", { class: "ellipsis", style: "font-weight:600" }, `vs ${g.opponent}${g.opponent_rating ? ` (${g.opponent_rating})` : ""}`),
+      h("div", { class: "small muted ellipsis" }, [shortDate(g.ended_at), g.mode, g.colour, g.opening].filter(Boolean).join(" · ")),
+      errs && h("div", { class: "small", style: "color:var(--bad)" }, errs)),
+    h("div", { class: "acc" },
+      h("b", {}, g.stockfish_accuracy != null ? `${Math.round(g.stockfish_accuracy)}%` : "–"),
+      h("span", { class: "small muted" }, g.chesscom_accuracy != null ? `C ${Math.round(g.chesscom_accuracy)}%` : "")));
+}
+
+async function load(append = false) {
+  offset = append ? offset + 20 : 0;
+  let d;
+  try { d = await api.get("/api/games?" + query({ offset })); } catch (e) { return fail(e); }
+  document.getElementById("sub").textContent = "Accuracy: ours, and Chess.com's (C) when reviewed";
+  if (append) list.append(...d.games.map(row));
+  else list.replaceChildren(...(d.games.length ? d.games.map(row) : [h("div", { class: "empty" }, h("p", {}, "No games yet."))]));
+  more.classList.toggle("hidden", !d.more);
+}
+
+document.getElementById("content").replaceChildren(list, more);
+setup("Games", load);
+</script>
+</body>
+</html>

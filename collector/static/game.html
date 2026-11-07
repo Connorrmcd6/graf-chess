@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15120f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chess">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" href="/static/icon.png">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<link rel="stylesheet" href="/static/app.css">
+<title>Game - Chess</title>
+</head>
+<body>
+<main class="page"><div id="content" class="stack"></div></main>
+<script src="/static/app.js"></script>
+<script>
+async function load() {
+  const content = document.getElementById("content");
+  let d;
+  try { d = await api.get("/api/game?" + query({ id: getParam("id") || "" })); } catch (e) { return fail(e); }
+  const g = d.game;
+  const result = { win: "Won", loss: "Lost", draw: "Drew", unknown: "Played" }[g.outcome] || "Played";
+  document.querySelector("h1").textContent = `${result} vs ${g.opponent}`;
+  document.getElementById("sub").textContent = [shortDate(g.ended_at), g.mode, `as ${g.colour}`, g.opening].filter(Boolean).join(" · ");
+  const tile = (label, value) => h("div", { class: "tile" }, h("div", { class: "label" }, label), h("div", { class: "value" }, value ?? "–"));
+  content.replaceChildren(
+    h("div", { class: "tiles" },
+      tile("Accuracy", g.stockfish_accuracy != null ? `${g.stockfish_accuracy}%` : null),
+      tile("Chess.com", g.chesscom_accuracy != null ? `${g.chesscom_accuracy}%` : null),
+      tile("Blunders", g.blunders), tile("Mistakes", g.mistakes)),
+    h("a", { class: "btn block", href: g.url, target: "_blank", rel: "noopener" }, "Open on Chess.com"),
+    ...section("Your errors in this game", legend(),
+      ...(d.errors.length ? d.errors.map((e) => positionCard({ ...e, url: null })) :
+        [empty(g.stockfish_accuracy == null ? "Not analysed" : "Clean game", g.stockfish_accuracy == null
+          ? "Only recent games are analysed; this one is older or still queued." : "No inaccuracies or worse. Nice.")])));
+}
+setup("Game", load, { modes: false });
+</script>
+</body>
+</html>

@@ -15,9 +15,10 @@ dev = ["pytest==8.4.2"]
 [project.scripts]
 chess-collector = "collector.main:main"
 chess-analyse = "collector.analysis:main"
+chess-web = "collector.web:main"
 
 [tool.setuptools.package-data]
-collector = ["schema.sql", "analysis_schema.sql"]
+collector = ["schema.sql", "analysis_schema.sql", "static/*"]
 
 [tool.setuptools.packages.find]
 include = ["collector*"]
