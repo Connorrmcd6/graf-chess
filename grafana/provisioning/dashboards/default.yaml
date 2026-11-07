@@ -9,3 +9,12 @@ providers:
     updateIntervalSeconds: 30
     options:
       path: /var/lib/grafana/dashboards
+  - name: Chess Club archive
+    orgId: 1
+    folder: Archive
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/archive

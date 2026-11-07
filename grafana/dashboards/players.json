@@ -103,9 +103,9 @@
       "id": 2
     },
     {
-      "title": "Current account ratings",
-      "type": "barchart",
-      "description": "Latest /stats observation; independent of the dashboard date range and prize leaderboard.",
+      "title": "Ratings and opponents",
+      "type": "table",
+      "description": "Current rating is the latest Chess.com /stats value, whatever the date range. Games and average opponent rating (as recorded after each game) cover the selected date range.",
       "gridPos": {
         "x": 0,
         "y": 13,
@@ -123,7 +123,7 @@
             "type": "postgres",
             "uid": "chess-postgres"
           },
-          "rawSql": "SELECT name || ' / ' || mode AS \"Player / mode\", rating AS \"Current rating\"\n          FROM dashboard.current_ratings WHERE username IN (${player:sqlstring}) AND mode IN (${mode:sqlstring})\n          ORDER BY mode, rating DESC",
+          "rawSql": "SELECT r.name AS \"Player\", r.mode AS \"Mode\", r.rating AS \"Current rating\",\n          s.games AS \"Games\", s.opponent AS \"Avg opponent rating\", r.last_game_at AS \"Last rated game\"\n          FROM dashboard.current_ratings r LEFT JOIN (\n              SELECT username, mode, count(*) AS games, round(avg(opponent_rating)) AS opponent\n              FROM dashboard.games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) GROUP BY username, mode) s USING (username, mode)\n          WHERE r.username IN (${player:sqlstring}) AND r.mode IN (${mode:sqlstring})\n          ORDER BY r.mode, r.rating DESC",
           "format": "table",
           "rawQuery": true
         }
@@ -136,17 +136,87 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "lineWidth": 0,
-            "fillOpacity": 85,
+            "lineWidth": 2,
+            "fillOpacity": 8,
             "showPoints": "auto",
             "spanNulls": true,
             "lineInterpolation": "stepAfter",
-            "minWidth": 60,
-            "axisWidth": 150
-          },
-          "min": 0
+            "minWidth": 60
+          }
         },
         "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rank"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 60
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Player"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rapid rating"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Current rating"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mode"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Games"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
           {
             "matcher": {
               "id": "byName",
@@ -154,11 +224,8 @@
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
+                "id": "custom.width",
+                "value": 60
               }
             ]
           },
@@ -169,11 +236,8 @@
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
+                "id": "custom.width",
+                "value": 60
               }
             ]
           },
@@ -184,11 +248,8 @@
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
+                "id": "custom.width",
+                "value": 65
               }
             ]
           },
@@ -199,11 +260,148 @@
             },
             "properties": [
               {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Win %"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last game"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 165
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Win %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg accuracy %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Chess.com %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Accuracy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Chess.com accuracy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Game"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open game",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open position on Lichess",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
               }
             ]
           }
@@ -214,13 +412,12 @@
         "cellHeight": "sm",
         "tooltip": {
           "mode": "multi",
-          "sort": "desc",
-          "hideZeros": true
+          "sort": "desc"
         },
         "legend": {
-          "showLegend": false,
           "displayMode": "list",
-          "placement": "bottom"
+          "placement": "bottom",
+          "calcs": []
         },
         "reduceOptions": {
           "calcs": [
@@ -231,12 +428,7 @@
         },
         "colorMode": "value",
         "graphMode": "none",
-        "textMode": "auto",
-        "orientation": "horizontal",
-        "showValue": "always",
-        "barWidth": 0.8,
-        "groupWidth": 0.7,
-        "stacking": "none"
+        "textMode": "auto"
       },
       "id": 3
     },
@@ -453,9 +645,9 @@
       "id": 5
     },
     {
-      "title": "Win rate by colour",
+      "title": "Average accuracy",
       "type": "barchart",
-      "description": "Wins divided by all games played with that colour. No games produces a missing value, not zero.",
+      "description": "Stockfish accuracy covers every analysed game; Chess.com's only games put through Game Review. The formulas differ, so compare players within one colour of bar, not across them.",
       "gridPos": {
         "x": 12,
         "y": 23,
@@ -473,7 +665,7 @@
             "type": "postgres",
             "uid": "chess-postgres"
           },
-          "rawSql": "SELECT name || ' / ' || mode AS \"Player / mode\",\n          100.0 * count(*) FILTER (WHERE colour = 'white' AND outcome = 'win') /\n              nullif(count(*) FILTER (WHERE colour = 'white'), 0) AS \"White\",\n          100.0 * count(*) FILTER (WHERE colour = 'black' AND outcome = 'win') /\n              nullif(count(*) FILTER (WHERE colour = 'black'), 0) AS \"Black\"\n          FROM dashboard.games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) GROUP BY name, mode ORDER BY name, mode",
+          "rawSql": "SELECT name || ' / ' || mode || ' (' || count(stockfish_accuracy) || ' analysed, '\n          || count(chesscom_accuracy) || ' reviewed / ' || count(*) || ')' AS \"Player / coverage\",\n          avg(stockfish_accuracy) AS \"Accuracy (Stockfish)\", avg(chesscom_accuracy) AS \"Chess.com accuracy\"\n          FROM dashboard.recent_games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) GROUP BY name, mode ORDER BY name, mode",
           "format": "table",
           "rawQuery": true
         }
@@ -557,36 +749,6 @@
                 }
               }
             ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "White"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#EEEEEE"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Black"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "#5794F2"
-                }
-              }
-            ]
           }
         ]
       },
@@ -599,7 +761,7 @@
           "hideZeros": true
         },
         "legend": {
-          "showLegend": true,
+          "showLegend": false,
           "displayMode": "list",
           "placement": "bottom"
         },
@@ -622,289 +784,12 @@
       "id": 6
     },
     {
-      "title": "Average opponent rating",
-      "type": "barchart",
-      "description": "Opponent ratings as recorded after each game.",
-      "gridPos": {
-        "x": 0,
-        "y": 32,
-        "w": 12,
-        "h": 9
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "chess-postgres"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "postgres",
-            "uid": "chess-postgres"
-          },
-          "rawSql": "SELECT name || ' / ' || mode AS \"Player / mode\",\n          avg(opponent_rating) AS \"Opponent rating\"\n          FROM dashboard.games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) GROUP BY name, mode ORDER BY name, mode",
-          "format": "table",
-          "rawQuery": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "none",
-          "decimals": 0,
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 0,
-            "fillOpacity": 85,
-            "showPoints": "auto",
-            "spanNulls": true,
-            "lineInterpolation": "stepAfter",
-            "minWidth": 60,
-            "axisWidth": 150
-          },
-          "min": 0
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Wins"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Draws"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Losses"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Unknown"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc",
-          "hideZeros": true
-        },
-        "legend": {
-          "showLegend": false,
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "orientation": "horizontal",
-        "showValue": "always",
-        "barWidth": 0.8,
-        "groupWidth": 0.7,
-        "stacking": "none"
-      },
-      "id": 7
-    },
-    {
-      "title": "Average accuracy",
-      "type": "barchart",
-      "description": "Labels show games with accuracy / total games. Missing accuracy is excluded from averages.",
-      "gridPos": {
-        "x": 12,
-        "y": 32,
-        "w": 12,
-        "h": 9
-      },
-      "datasource": {
-        "type": "postgres",
-        "uid": "chess-postgres"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "postgres",
-            "uid": "chess-postgres"
-          },
-          "rawSql": "SELECT name || ' / ' || mode || ' (' || count(accuracy) || '/' || count(*) || ')' AS \"Player / coverage\",\n          avg(accuracy) AS \"Accuracy\"\n          FROM dashboard.games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) GROUP BY name, mode ORDER BY name, mode",
-          "format": "table",
-          "rawQuery": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "decimals": 1,
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "lineWidth": 0,
-            "fillOpacity": 85,
-            "showPoints": "auto",
-            "spanNulls": true,
-            "lineInterpolation": "stepAfter",
-            "minWidth": 60,
-            "axisWidth": 150
-          },
-          "min": 0,
-          "max": 100
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Wins"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "green"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Draws"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "blue"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Losses"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "red"
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Unknown"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "mode": "fixed",
-                  "fixedColor": "orange"
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "options": {
-        "showHeader": true,
-        "cellHeight": "sm",
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc",
-          "hideZeros": true
-        },
-        "legend": {
-          "showLegend": false,
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "/.*/",
-          "values": false
-        },
-        "colorMode": "value",
-        "graphMode": "none",
-        "textMode": "auto",
-        "orientation": "horizontal",
-        "showValue": "always",
-        "barWidth": 0.8,
-        "groupWidth": 0.7,
-        "stacking": "none"
-      },
-      "id": 8
-    },
-    {
       "title": "Club head-to-head",
       "type": "barchart",
       "description": "Each matchup is shown from each selected player's perspective. Do not sum mirrored rows.",
       "gridPos": {
         "x": 0,
-        "y": 41,
+        "y": 32,
         "w": 24,
         "h": 10
       },
@@ -1034,6 +919,405 @@
         "groupWidth": 0.7,
         "stacking": "normal"
       },
+      "id": 7
+    },
+    {
+      "title": "Accuracy trend (10-game average)",
+      "type": "timeseries",
+      "description": "Average Stockfish accuracy over each player's last 10 analysed games in that mode.",
+      "gridPos": {
+        "x": 0,
+        "y": 42,
+        "w": 24,
+        "h": 9
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "chess-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "chess-postgres"
+          },
+          "rawSql": "SELECT ended_at AS time, avg(stockfish_accuracy) OVER (\n          PARTITION BY username, mode ORDER BY ended_at ROWS 9 PRECEDING) AS value, name || ' / ' || mode AS metric\n          FROM dashboard.recent_games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) AND stockfish_accuracy IS NOT NULL ORDER BY time",
+          "format": "time_series",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "auto",
+            "spanNulls": true,
+            "lineInterpolation": "stepAfter",
+            "minWidth": 60
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "id": 8
+    },
+    {
+      "title": "Recent games",
+      "type": "table",
+      "description": "Accuracy is worked out from our Stockfish analysis (Lichess's formula) and appears once a game is analysed. Chess.com accuracy appears only when someone ran Game Review. The two use different formulas, so compare like with like.",
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 24,
+        "h": 10
+      },
+      "datasource": {
+        "type": "postgres",
+        "uid": "chess-postgres"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "postgres",
+            "uid": "chess-postgres"
+          },
+          "rawSql": "SELECT ended_at AS \"Completed\", name AS \"Player\", mode AS \"Mode\", colour AS \"Colour\",\n          opponent AS \"Opponent\", outcome AS \"Result\", rating AS \"Rating\", opening AS \"Opening\",\n          stockfish_accuracy AS \"Accuracy\", chesscom_accuracy AS \"Chess.com accuracy\",\n          blunders AS \"Blunders\", mistakes AS \"Mistakes\", url AS \"Game\"\n          FROM dashboard.recent_games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) ORDER BY ended_at DESC LIMIT 50",
+          "format": "table",
+          "rawQuery": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8,
+            "showPoints": "auto",
+            "spanNulls": true,
+            "lineInterpolation": "stepAfter",
+            "minWidth": 60
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rank"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 60
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Player"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Rapid rating"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Current rating"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mode"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Games"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Wins"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 60
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Draws"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 60
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Losses"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Unknown"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Win %"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 75
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Last game"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 165
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Win %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg accuracy %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Avg Chess.com %"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Accuracy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Chess.com accuracy"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Game"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open game",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Position"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open position on Lichess",
+                    "url": "${__value.raw}",
+                    "targetBlank": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
       "id": 9
     },
     {
@@ -1042,7 +1326,7 @@
       "collapsed": true,
       "gridPos": {
         "x": 0,
-        "y": 51,
+        "y": 61,
         "w": 24,
         "h": 1
       },
@@ -1053,7 +1337,7 @@
           "description": "",
           "gridPos": {
             "x": 0,
-            "y": 52,
+            "y": 62,
             "w": 24,
             "h": 8
           },
@@ -1269,6 +1553,54 @@
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "Avg Chess.com %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Chess.com accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "Game"
                 },
                 "properties": [
@@ -1277,6 +1609,24 @@
                     "value": [
                       {
                         "title": "Open game",
+                        "url": "${__value.raw}",
+                        "targetBlank": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Position"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Open position on Lichess",
                         "url": "${__value.raw}",
                         "targetBlank": true
                       }
@@ -1314,10 +1664,10 @@
         {
           "title": "Accuracy coverage",
           "type": "table",
-          "description": "",
+          "description": "'Chess.com minus ours' averages the gap over games that have both, to show how the two scales compare.",
           "gridPos": {
             "x": 0,
-            "y": 60,
+            "y": 70,
             "w": 24,
             "h": 8
           },
@@ -1332,7 +1682,7 @@
                 "type": "postgres",
                 "uid": "chess-postgres"
               },
-              "rawSql": "SELECT name AS \"Player\", mode AS \"Mode\",\n          round(avg(accuracy)::numeric, 1) AS \"Avg accuracy %\",\n          count(accuracy) AS \"Games with accuracy\", count(*) AS \"Total games\"\n          FROM dashboard.games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) GROUP BY name, mode ORDER BY name, mode",
+              "rawSql": "SELECT name AS \"Player\", mode AS \"Mode\", count(*) AS \"Total games\",\n          count(stockfish_accuracy) AS \"Analysed\", round(avg(stockfish_accuracy)::numeric, 1) AS \"Avg accuracy %\",\n          count(chesscom_accuracy) AS \"Reviewed on Chess.com\", round(avg(chesscom_accuracy)::numeric, 1) AS \"Avg Chess.com %\",\n          count(*) FILTER (WHERE stockfish_accuracy IS NOT NULL AND chesscom_accuracy IS NOT NULL) AS \"Both\",\n          round(avg(chesscom_accuracy - stockfish_accuracy)::numeric, 1) AS \"Chess.com minus ours\"\n          FROM dashboard.recent_games WHERE rated AND rules = 'chess' AND username IN (${player:sqlstring})\nAND mode IN (${mode:sqlstring}) AND $__timeFilter(ended_at) GROUP BY name, mode ORDER BY name, mode",
               "format": "table",
               "rawQuery": true
             }
@@ -1533,6 +1883,54 @@
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "Avg Chess.com %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Chess.com accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "Game"
                 },
                 "properties": [
@@ -1541,6 +1939,24 @@
                     "value": [
                       {
                         "title": "Open game",
+                        "url": "${__value.raw}",
+                        "targetBlank": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Position"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Open position on Lichess",
                         "url": "${__value.raw}",
                         "targetBlank": true
                       }
@@ -1581,7 +1997,7 @@
           "description": "",
           "gridPos": {
             "x": 0,
-            "y": 68,
+            "y": 78,
             "w": 24,
             "h": 8
           },
@@ -1797,6 +2213,54 @@
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "Avg Chess.com %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Chess.com accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "Game"
                 },
                 "properties": [
@@ -1805,6 +2269,24 @@
                     "value": [
                       {
                         "title": "Open game",
+                        "url": "${__value.raw}",
+                        "targetBlank": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Position"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Open position on Lichess",
                         "url": "${__value.raw}",
                         "targetBlank": true
                       }
@@ -1845,7 +2327,7 @@
           "description": "",
           "gridPos": {
             "x": 0,
-            "y": 76,
+            "y": 86,
             "w": 24,
             "h": 8
           },
@@ -2061,6 +2543,54 @@
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "Avg Chess.com %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Chess.com accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "Game"
                 },
                 "properties": [
@@ -2069,6 +2599,24 @@
                     "value": [
                       {
                         "title": "Open game",
+                        "url": "${__value.raw}",
+                        "targetBlank": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Position"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Open position on Lichess",
                         "url": "${__value.raw}",
                         "targetBlank": true
                       }
@@ -2173,13 +2721,13 @@
   },
   "links": [
     {
-      "title": "Competition",
-      "url": "/d/chess-competition",
+      "title": "Player comparison",
+      "url": "/d/chess-players",
       "type": "link"
     },
     {
-      "title": "Player comparison",
-      "url": "/d/chess-players",
+      "title": "Recurring mistakes",
+      "url": "/d/chess-mistakes",
       "type": "link"
     }
   ]

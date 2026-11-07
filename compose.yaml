@@ -38,6 +38,23 @@ services:
       retries: 3
     networks: [backend, outbound]
 
+  analyser:
+    build: .
+    restart: unless-stopped
+    entrypoint: [chess-analyse]
+    command: [--loop]
+    environment:
+      DATABASE_URL: postgresql://chess_owner:${COLLECTOR_PASSWORD}@db:5432/chess
+      ANALYSIS_THREADS: ${ANALYSIS_THREADS:-2}
+      ANALYSIS_DEPTH: ${ANALYSIS_DEPTH:-14}
+      ANALYSIS_DAYS: ${ANALYSIS_DAYS:-30}
+      ANALYSIS_INTERVAL: "1800"
+    stop_grace_period: 30s
+    depends_on:
+      collector:
+        condition: service_healthy
+    networks: [backend]
+
   grafana:
     image: grafana/grafana:13.2.1
     restart: unless-stopped
@@ -53,7 +70,7 @@ services:
       GF_SECURITY_COOKIE_SECURE: ${GRAFANA_COOKIE_SECURE:-false}
       GF_SECURITY_COOKIE_SAMESITE: lax
       GF_ANALYTICS_REPORTING_ENABLED: "false"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/competition.json
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/players.json
       GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
     ports:
       - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
@@ -61,6 +78,7 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/archive:/var/lib/grafana/archive:ro
     depends_on:
       collector:
         condition: service_healthy

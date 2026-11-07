@@ -2,7 +2,7 @@
 
 A Raspberry Pi dashboard for seven friends competing for the highest Chess.com rapid rating over 12 weeks. Python collects public games, PostgreSQL stores them, and Grafana displays the competition and other modes. Python dependencies and commands use **uv**.
 
-Both dashboards lead with rating trends and comparison charts. Rankings, qualification progress, results, win rates, and activity use bars; exact figures, collection timestamps, and game links are available in the collapsed **Details and game links** sections.
+The 12-week competition ended on 31 October 2026. Its dashboard is now in Grafana's **Archive** folder, still readable but no longer the home page or in the dashboard links. The home page is **Player comparison**, alongside **Recurring mistakes** (engine analysis, below). The dashboards lead with rating trends and comparison charts. Rankings, qualification progress, results, win rates, and activity use bars; exact figures, collection timestamps, and game links are available in the collapsed **Details and game links** sections.
 
 ## Competition
 
@@ -24,7 +24,7 @@ Use a Pi 5 with a **64-bit OS**, Docker Engine with Compose v2, and [uv](https:/
 2. `uv run scripts/setup.py` generates `.env` with random credentials and restrictive permissions; it never overwrites an existing file.
 3. Edit `.env` to set `CHESS_USER_AGENT` to an identifiable value with contact information, for example `graf-chess/0.1 (contact: you@example.com)`.
 4. `docker compose up -d --build` builds the collector and database images and starts all three services.
-5. Open **http://localhost:3000** for the competition dashboard; the player-comparison link opens the other dashboard.
+5. Open **http://localhost:3000** for the player comparison dashboard; the links at the top open Recurring mistakes, and the archived competition is under Dashboards → Archive.
 6. `docker compose ps` checks health; `docker compose logs --tail 50 collector` shows import progress and failures.
 
 On macOS, prefix long builds/tests with `caffeinate -i`. On Raspberry Pi OS, run the commands directly. Initial startup waits for the first collection cycle before starting Grafana. A failed API request does not prevent viewing previously imported data. Container health checks that the worker is running collection cycles; the collection-status panel reports per-player errors and freshness. No Chess.com API key is needed.
@@ -69,6 +69,27 @@ Post-deadline games never affect the competition. After the deadline, standings 
 3. Within one hour of that successful refresh, run `docker compose exec collector chess-collector finalize --confirm` to save the immutable prize standings.
 
 Finalization is refused before the grace period, without a recent successful full refresh, or if already finalized. Later archive corrections can still appear in exploratory charts, but cannot modify the saved prize results. The 24-hour wait is a conservative operational rule, not a guarantee of API completeness.
+
+## Recurring mistakes (engine analysis)
+
+The `analyser` service runs Stockfish over collected standard games from the last 30 days, using the PGNs the collector has already cached; nothing extra is fetched from Chess.com. It works through any backlog, then checks for new games every 30 minutes. The **Recurring mistakes** dashboard shows the results.
+
+- **Same position, same mistake:** each position gets a fingerprint (pieces, side to move, castling, ignoring move counters, so transpositions match). When you play the same bad move from the same position in two or more games, it is listed with the engine's preferred move and a Lichess link to the position.
+- **Pawn structures:** after move 10, moves are also grouped by both sides' pawns and which wing each king is on. This shows similar middlegames where you keep going wrong.
+- **Positional or tactical:** an error is a move that drops your winning chances by 10+ points (inaccuracy), 20+ (mistake) or 30+ (blunder), using the Lichess formula. It is `allowed_tactic` if the opponent's best reply wins 2+ pawns of material or forces mate, `missed_tactic` if the engine's move would have, and `positional` otherwise.
+
+- **Accuracy:** each analysed game also gets an accuracy for both sides, using Lichess's published formula over the same evaluations, so it needs no extra engine time. It appears next to Chess.com's accuracy in the **Recent games** tables. Chess.com's figure exists only for games put through Game Review, and its formula is private. On sampled games the two differed unpredictably (anything from 18 points lower to 33 higher), so they are shown side by side and never mixed in averages.
+
+Results are stored in `chess.analysed_games` and `chess.move_analysis` and exposed through the `dashboard.player_moves`, `errors`, `repeated_mistakes`, `repeated_positions`, `structure_mistakes` and `analysis_status` views. A game whose PGN can't be analysed is recorded with `status = 'error'` and skipped; delete its `chess.analysed_games` row to retry it. If Stockfish itself crashes, the service exits and Docker restarts it without marking any game as failed.
+
+On a Pi 5 a rapid game takes about 15 seconds at the defaults (depth 14, at most 1 second per position, 2 threads), so the first pass over 30 days of games (about 800 for the club) takes 3-4 hours. After that, new games are analysed within the hour. Games analysed earlier stay in the results as they age past 30 days. Set `ANALYSIS_DAYS` in `.env` to look further back (`0` analyses everything, about 15 seconds per extra game). `ANALYSIS_THREADS` and `ANALYSIS_DEPTH` trade speed against CPU left for PostgreSQL and Grafana. To run a one-off pass yourself, stop the service first; only one analyser can run at a time:
+
+```sh
+docker compose stop analyser
+docker compose run --rm analyser --all
+```
+
+Stockfish judges *that* a move was worse and what was better, not *why* in human terms. Look at the top repeated positions and structures on Lichess, or ask Claude to explain the recurring idea behind them.
 
 ## Backups and recovery
 

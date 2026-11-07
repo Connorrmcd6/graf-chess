@@ -24,7 +24,7 @@ def main():
     start = str(int(datetime.fromisoformat(config["start"]).timestamp() * 1000))
     end = str(int(datetime.now(timezone.utc).timestamp() * 1000))
     checks = 0
-    for file in sorted((ROOT / "grafana/dashboards").glob("*.json")):
+    for file in sorted([*(ROOT / "grafana/dashboards").glob("*.json"), *(ROOT / "grafana/archive").glob("*.json")]):
         dashboard = json.loads(file.read_text())
         with urlopen(f"{args.url}/api/dashboards/uid/{dashboard['uid']}", timeout=30) as response:
             deployed = json.load(response)
@@ -32,7 +32,7 @@ def main():
         for panel in walk_panels(dashboard["panels"]):
             if not panel.get("targets"):
                 continue
-            for mode in ("rapid", "blitz", "bullet", "daily") if file.stem == "players" else ("rapid",):
+            for mode in ("rapid", "blitz", "bullet", "daily") if file.stem in ("players", "mistakes") else ("rapid",):
                 targets = []
                 for target in panel["targets"]:
                     target = dict(target)

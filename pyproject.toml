@@ -7,16 +7,17 @@ name = "graf-chess"
 version = "0.1.0"
 description = "A self-hosted Chess.com competition dashboard"
 requires-python = ">=3.12"
-dependencies = ["psycopg[binary]==3.2.10"]
+dependencies = ["chess==1.11.2", "psycopg[binary]==3.2.10"]
 
 [dependency-groups]
 dev = ["pytest==8.4.2"]
 
 [project.scripts]
 chess-collector = "collector.main:main"
+chess-analyse = "collector.analysis:main"
 
 [tool.setuptools.package-data]
-collector = ["schema.sql"]
+collector = ["schema.sql", "analysis_schema.sql"]
 
 [tool.setuptools.packages.find]
 include = ["collector*"]

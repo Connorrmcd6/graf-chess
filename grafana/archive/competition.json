@@ -1,13 +1,14 @@
 {
   "uid": "chess-competition",
-  "title": "Chess Club | Race to the top",
+  "title": "Chess Club | Race to the top (archived)",
   "schemaVersion": 39,
   "version": 1,
   "editable": false,
   "timezone": "Africa/Johannesburg",
   "refresh": "5m",
   "tags": [
-    "chess-club"
+    "chess-club",
+    "archived"
   ],
   "time": {
     "from": "2026-08-07T22:00:00Z",
@@ -1193,6 +1194,54 @@
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "Avg Chess.com %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Chess.com accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "Game"
                 },
                 "properties": [
@@ -1201,6 +1250,24 @@
                     "value": [
                       {
                         "title": "Open game",
+                        "url": "${__value.raw}",
+                        "targetBlank": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Position"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Open position on Lichess",
                         "url": "${__value.raw}",
                         "targetBlank": true
                       }
@@ -1457,6 +1524,54 @@
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "Avg Chess.com %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Chess.com accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "Game"
                 },
                 "properties": [
@@ -1465,6 +1580,24 @@
                     "value": [
                       {
                         "title": "Open game",
+                        "url": "${__value.raw}",
+                        "targetBlank": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Position"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Open position on Lichess",
                         "url": "${__value.raw}",
                         "targetBlank": true
                       }
@@ -1721,6 +1854,54 @@
               {
                 "matcher": {
                   "id": "byName",
+                  "options": "Avg Chess.com %"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Chess.com accuracy"
+                },
+                "properties": [
+                  {
+                    "id": "unit",
+                    "value": "percent"
+                  },
+                  {
+                    "id": "decimals",
+                    "value": 1
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
                   "options": "Game"
                 },
                 "properties": [
@@ -1729,6 +1910,24 @@
                     "value": [
                       {
                         "title": "Open game",
+                        "url": "${__value.raw}",
+                        "targetBlank": true
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "matcher": {
+                  "id": "byName",
+                  "options": "Position"
+                },
+                "properties": [
+                  {
+                    "id": "links",
+                    "value": [
+                      {
+                        "title": "Open position on Lichess",
                         "url": "${__value.raw}",
                         "targetBlank": true
                       }
@@ -1772,13 +1971,13 @@
   },
   "links": [
     {
-      "title": "Competition",
-      "url": "/d/chess-competition",
+      "title": "Player comparison",
+      "url": "/d/chess-players",
       "type": "link"
     },
     {
-      "title": "Player comparison",
-      "url": "/d/chess-players",
+      "title": "Recurring mistakes",
+      "url": "/d/chess-mistakes",
       "type": "link"
     }
   ]

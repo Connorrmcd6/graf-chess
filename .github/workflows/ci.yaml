@@ -25,15 +25,17 @@ jobs:
           enable-cache: true
       - name: Install locked dependencies
         run: uv sync --locked
+      - name: Install Stockfish for analysis tests
+        run: sudo apt-get update && sudo apt-get install -y stockfish
       - name: Test competition rules and database permissions
         run: uv run --locked pytest --integration -q
       - name: Verify generated dashboards
         run: |
           uv run --locked scripts/build_dashboards.py
-          git diff --exit-code -- grafana/dashboards
+          git diff --exit-code -- grafana/dashboards grafana/archive
       - name: Validate Compose configuration
         run: |
           uv run --locked scripts/setup.py
           docker compose config --quiet
       - name: Build container images
-        run: docker compose build collector db
+        run: docker compose build collector analyser db
