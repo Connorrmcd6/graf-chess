@@ -239,6 +239,16 @@ label.field .hint { font-weight: 400; color: var(--muted); }
 .acc { text-align: right; flex: none; font-variant-numeric: tabular-nums; }
 .acc b { font-size: 1.1rem; display: block; }
 .drill-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.drill-board { position: relative; width: 100%; max-width: 520px; margin: 0 auto; }
+/* 64 tap targets laid exactly over the SVG's squares (15px margin in a 390px viewBox). */
+.drill-board .grid { position: absolute; inset: 3.846%; display: grid; grid-template: repeat(8, 1fr) / repeat(8, 1fr); }
+.drill-board .sq { border: 0; padding: 0; background: transparent; position: relative; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.drill-board .sq.sel { background: rgba(47, 107, 79, .45); }
+.drill-board .sq.target::after { content: ""; position: absolute; inset: 36%; border-radius: 50%; background: rgba(47, 107, 79, .55); }
+.drill-board .sq:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.verdict { border-radius: 12px; padding: 12px 14px; font-weight: 600; }
+.verdict.good { background: var(--good-soft); color: var(--good); }
+.verdict.bad { background: var(--bad-soft); color: var(--bad); }
 .score { font-variant-numeric: tabular-nums; }
 .seg button { min-width: 0; padding: 0 6px; }
 .page { overflow-x: clip; }

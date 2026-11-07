@@ -31,39 +31,87 @@ async function load() {
   show();
 }
 
+const FILES = "abcdefgh";
+
 function show() {
   const content = document.getElementById("content");
   document.getElementById("sub").textContent = deck.length ? `Position ${index + 1} of ${deck.length}` : "";
   if (!deck.length) return content.replaceChildren(empty("Nothing to drill", "Mistakes and blunders from analysed games appear here."));
   const p = deck[index];
+  const legal = p.legal || {};
+  let selected = null, done = false;
+
   const img = h("img", { class: "big-board", src: boardUrl(p.fen, p.colour, "", ""), alt: "Board position" });
-  const answer = h("div", { class: "stack hidden" });
-  const reveal = h("button", { class: "btn primary block", onclick: () => {
-    img.src = boardUrl(p.fen, p.colour, p.uci, p.best_uci);
-    reveal.classList.add("hidden");
-    answer.classList.remove("hidden");
-  } }, "Show answer");
-  const mark = (key) => { score[key]++; store("drillScore", JSON.stringify(score)); next(); };
-  answer.append(
-    legend(),
-    h("div", {}, "You played ", h("b", { style: "color:var(--bad)" }, p.san), " · engine wants ", h("b", { style: "color:var(--good)" }, p.best_san)),
-    p.best_line && h("div", { class: "line" }, p.best_line),
-    h("div", { class: "small muted" }, [p.kind && KIND[p.kind], `−${Math.round(p.win_loss)} pts`, p.opening].filter(Boolean).join(" · ")),
-    h("div", { class: "drill-actions" },
-      h("button", { class: "btn", onclick: () => mark("missed") }, "Missed it"),
-      h("button", { class: "btn primary", onclick: () => mark("got") }, "Got it")),
-    h("div", { class: "row" },
-      h("a", { class: "btn grow", href: lichessUrl(p.fen, p.colour), target: "_blank", rel: "noopener" }, "Open in Lichess"),
-      p.url && h("a", { class: "btn", href: p.url, target: "_blank", rel: "noopener" }, "Game")));
+  const squares = [];
+  const grid = h("div", { class: "grid" });
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const name = p.colour === "white" ? FILES[col] + (8 - row) : FILES[7 - col] + (row + 1);
+      const sq = h("button", { class: "sq", "aria-label": name, onclick: () => tap(name) });
+      sq.dataset.square = name;
+      squares.push(sq);
+      grid.append(sq);
+    }
+  }
+  const hint = h("div", { class: "muted small" }, "Tap a piece, then the square to move it to.");
+  const result = h("div", { class: "stack hidden" });
+  const giveUp = h("button", { class: "btn block", onclick: () => finish(null) }, "Show answer");
+  const skip = h("button", { class: "btn block", onclick: next }, "Skip");
+
+  function highlight() {
+    const targets = new Set(Object.keys(legal).filter((m) => m.startsWith(selected || "-")).map((m) => m.slice(2, 4)));
+    for (const sq of squares) {
+      sq.classList.toggle("sel", sq.dataset.square === selected);
+      sq.classList.toggle("target", targets.has(sq.dataset.square));
+    }
+  }
+
+  function tap(square) {
+    if (done) return;
+    if (selected) {
+      const moves = Object.keys(legal).filter((m) => m.startsWith(selected + square));
+      if (moves.length) return finish(moves.find((m) => m.endsWith("q")) || moves[0]);  // promotions: queen
+    }
+    selected = Object.keys(legal).some((m) => m.startsWith(square)) && square !== selected ? square : null;
+    highlight();
+  }
+
+  function finish(move) {
+    done = true;
+    selected = null;
+    highlight();
+    const correct = move === p.best_uci;
+    score[correct ? "got" : "missed"]++;
+    store("drillScore", JSON.stringify(score));
+    img.src = boardUrl(p.fen, p.colour, correct ? "" : move || "", p.best_uci);
+    grid.classList.add("hidden");
+    giveUp.classList.add("hidden");
+    skip.classList.add("hidden");
+    hint.classList.add("hidden");
+    const engine = h("b", {}, p.best_san);
+    result.replaceChildren(
+      h("div", { class: "verdict " + (correct ? "good" : "bad") },
+        correct ? ["✓ Correct: ", engine] : move ? ["✕ ", legal[move], " isn't the engine's move. It wants ", engine, "."] : ["The engine wants ", engine, "."]),
+      move && !correct && legend(),
+      h("div", {}, move === p.uci ? "That's also what you played in the game." : ["In the game you played ", h("b", { style: "color:var(--bad)" }, p.san),
+        `, costing ${Math.round(p.win_loss)} pts.`]),
+      p.best_line && h("div", { class: "line" }, p.best_line),
+      h("div", { class: "small muted" }, [p.kind && KIND[p.kind], p.opening].filter(Boolean).join(" · ")),
+      h("button", { class: "btn primary block", onclick: next }, "Next position"),
+      h("div", { class: "row" },
+        h("a", { class: "btn grow", href: lichessUrl(p.fen, p.colour), target: "_blank", rel: "noopener" }, "Open in Lichess"),
+        p.url && h("a", { class: "btn", href: p.url, target: "_blank", rel: "noopener" }, "Game")));
+    result.classList.remove("hidden");
+    document.querySelector(".score").textContent = `✓ ${score.got}  ✕ ${score.missed}`;
+  }
+
   content.replaceChildren(
     h("div", { class: "row" },
       h("div", { class: "grow" }, h("b", {}, `${p.colour === "white" ? "White" : "Black"} to move`),
         h("div", { class: "small muted" }, p.repeated ? "You've gone wrong here more than once" : `Move ${p.move_number} · ${shortDate(p.ended_at)}`)),
       h("div", { class: "small muted score" }, `✓ ${score.got}  ✕ ${score.missed}`)),
-    img,
-    h("div", { class: "muted small" }, "Find the best move, then check."),
-    reveal, answer,
-    h("button", { class: "btn block", onclick: next }, "Skip"));
+    h("div", { class: "drill-board" }, img, grid),
+    hint, result, giveUp, skip);
 }
 
 function next() {

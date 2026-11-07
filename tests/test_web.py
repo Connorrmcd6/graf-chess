@@ -52,7 +52,7 @@ def test_api_reads_everything_through_the_read_only_role(app):
     errors = app.get("/api/errors", q)
     assert len(errors["errors"]) == 2 and errors["more"] is False and errors["errors"][0]["fen"] == FEN
     [drill] = app.get("/api/drill", q)["positions"]
-    assert drill["repeated"] is True
+    assert drill["repeated"] is True and drill["legal"]["e7e5"] == "e5" and drill["legal"]["g8f6"] == "Nf6" and len(drill["legal"]) == 20
     games = app.get("/api/games", q)["games"]
     assert [g["game_id"] for g in games] == ["g1", "g2"] and games[0]["chesscom_accuracy"] == 70
     game = app.get("/api/game", q | {"id": "g1"})

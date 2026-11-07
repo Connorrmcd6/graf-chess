@@ -228,7 +228,11 @@ class App:
                 items = rows(conn, ERRORS_SQL, p | {"classes": classes, "limit": PAGE_SIZE + 1})
                 return {"errors": items[:PAGE_SIZE], "more": len(items) > PAGE_SIZE}
             if path == "/api/drill":
-                return {"positions": rows(conn, DRILL_SQL, p)}
+                positions = rows(conn, DRILL_SQL, p)
+                for item in positions:  # lets the page offer tap-to-move without a chess library in the browser
+                    board = chess.Board(item["fen"])
+                    item["legal"] = {m.uci(): board.san(m) for m in board.legal_moves}
+                return {"positions": positions}
             if path == "/api/games":
                 items = rows(conn, GAMES_SQL, p | {"limit": PAGE_SIZE + 1})
                 return {"games": items[:PAGE_SIZE], "more": len(items) > PAGE_SIZE}
