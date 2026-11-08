@@ -1,4 +1,4 @@
-const CACHE = "chess-v1";
+const CACHE = "chess-v2";
 
 self.addEventListener("install", () => self.skipWaiting());
 

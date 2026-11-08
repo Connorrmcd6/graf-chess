@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f3ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15120f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Chess">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="icon" href="/static/icon.png">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<link rel="stylesheet" href="/static/app.css">
+<title>Openings - Chess</title>
+</head>
+<body>
+<main class="page"><div id="content" class="stack"></div></main>
+<script src="/static/app.js"></script>
+<script>
+// Views live in the hash so the back button works: "" (openings), "#o/<opening>", "#l/<line>" (practice).
+let book = null, stats = { positions: {}, lines: {}, openings: {} }, practising = null;
+const LEARNED = 3;  // clean runs in a row
+let progress = {};
+try { progress = JSON.parse(store("openingProgress") || "{}"); } catch { progress = {}; }
+
+async function load() {
+  try {
+    if (!book) book = (await api.get("/api/openings")).openings;
+  } catch (e) { return fail(e); }
+  try { stats = await api.get("/api/opening-stats?" + query()); } catch (e) { fail(e); }
+  const lines = book.reduce((n, o) => n + o.lines.length, 0);
+  document.getElementById("sub").textContent = `${book.length} openings · ${lines} lines`;
+  // Mid-line, new stats only refresh the panel; re-rendering would restart the line.
+  if (practising && location.hash === "#l/" + practising.id) return practising.refresh();
+  render();
+}
+
+function find(lineId) {
+  for (const o of book) for (const l of o.lines) if (l.id === lineId) return [o, l];
+  return [];
+}
+function prog(id) { return progress[id] || { streak: 0, runs: 0 }; }
+function learned(id) { return prog(id).streak >= LEARNED; }
+function go(hash) { if (location.hash === hash) render(); else location.hash = hash; }
+
+function render() {
+  if (!book) return;
+  const content = document.getElementById("content");
+  const [kind, id] = location.hash.slice(1).split("/");
+  practising = null;
+  window.scrollTo(0, 0);
+  if (kind === "l" && find(id).length) return practise(...find(id));
+  const opening = kind === "o" && book.find((o) => o.id === id);
+  content.replaceChildren(...(opening ? linesView(opening) : openingsView()));
+}
+
+function colourTag(o) { return h("span", { class: "tag" }, o.colour === "white" ? "as White" : "as Black"); }
+
+function slipNote(slip) {
+  return slip && h("div", { class: "small", style: "color:var(--bad)" },
+    `You played ${slip.label.replace(slip.book, slip.san)} instead of ${slip.label} in ${slip.times} game${slip.times > 1 ? "s" : ""}`);
+}
+
+function openingsView() {
+  return [h("div", { class: "list" }, book.map((o) => {
+    const games = stats.openings[o.id]?.games || 0;
+    const done = o.lines.filter((l) => learned(l.id)).length;
+    return h("a", { class: "list-row", href: "#o/" + o.id },
+      h("div", { class: "grow" },
+        h("div", {}, h("b", {}, o.name)),
+        h("div", { class: "meta" }, colourTag(o), h("span", { class: "small muted" },
+          `${o.lines.length} lines · ${done} learned · ${games} of your games`)),
+        slipNote(stats.openings[o.id]?.slip)),
+      h("span", { class: "muted", "aria-hidden": "true" }, "›"));
+  })), h("p", { class: "small muted" },
+    "Tap an opening, then a line. The board plays your opponent's moves; you tap yours. ",
+    `A line counts as learned after ${LEARNED} runs in a row with no mistakes.`)];
+}
+
+function linesView(o) {
+  const random = () => go("#l/" + o.lines[Math.floor(Math.random() * o.lines.length)].id);
+  return [
+    h("div", { class: "row" }, h("a", { class: "btn", href: "#" }, "‹ Openings"), h("div", { class: "grow" }), colourTag(o)),
+    h("h2", {}, o.name),
+    slipNote(stats.openings[o.id]?.slip),
+    h("button", { class: "btn primary block", onclick: random }, "Practise a random line"),
+    h("div", { class: "list" }, o.lines.map((l) => {
+      const s = stats.lines[l.id] || {};
+      const p = prog(l.id);
+      return h("a", { class: "list-row", href: "#l/" + l.id },
+        h("div", { class: "grow", style: "min-width:0" },
+          h("div", {}, h("b", {}, l.name)),
+          h("div", { class: "line" }, l.moves),
+          h("div", { class: "small muted" }, [
+            s.games ? `${s.games} of your games` : "Not in your analysed games yet",
+            s.deepest && `you got as far as ${s.deepest}`].filter(Boolean).join(" · ")),
+          slipNote(s.slip)),
+        h("span", { class: "tag " + (learned(l.id) ? "good" : "") },
+          learned(l.id) ? "✓ learned" : p.runs ? `${p.streak}/${LEARNED}` : "new"));
+    })),
+  ];
+}
+
+function practise(o, line) {
+  const content = document.getElementById("content");
+  const plies = line.plies;
+  const fenAt = (i) => (i < plies.length ? plies[i].fen : line.end_fen);
+  let i = 0, mistakes = 0, timer = null;
+  const board = tapBoard({ colour: o.colour, onMove });
+  const status = h("div", { class: "verdict hidden" });
+  const actions = h("div", { class: "stack" });
+  const panel = h("div", { class: "small" });
+  const moves = h("div", { class: "line" });
+  const title = h("div", { class: "small muted" });
+
+  function last() { return i > 0 ? plies[i - 1].uci : ""; }
+  function done(n) { return plies.slice(0, n).map((p, k) => (p.mover === "white" || k === 0 ? p.label : p.san)).join(" "); }
+
+  function step() {
+    clearTimeout(timer);
+    moves.textContent = done(i) || "Starting position";
+    actions.replaceChildren();
+    status.classList.add("hidden");
+    panel.replaceChildren();
+    if (i >= plies.length) return finish();
+    const ply = plies[i];
+    if (ply.mover !== o.colour) {
+      title.textContent = "Opponent to move…";
+      board.set({ fen: fenAt(i), best: last(), locked: true });
+      timer = setTimeout(() => { i++; step(); }, i === 0 ? 700 : 450);
+      return;
+    }
+    title.textContent = `Your move (${ply.label.replace(ply.san, "?")})`;
+    board.set({ fen: fenAt(i), legal: ply.legal, best: last() });
+    actions.replaceChildren(h("button", { class: "btn block", onclick: () => reveal(null) }, "Show move"));
+    showStats(ply);
+  }
+
+  function showStats(ply) {
+    const s = ply.key && stats.positions[ply.key];
+    if (!s) return panel.replaceChildren(h("span", { class: "muted" }, "You haven't reached this position in your analysed games."));
+    panel.replaceChildren(h("span", { class: "muted" }, `In your games here (${s.games}): `),
+      ...s.moves.flatMap((m, k) => [k ? " · " : "",
+        h("b", { style: m.san === ply.san ? "color:var(--good)" : "color:var(--bad)" }, m.san),
+        ` ${m.games}×`, m.san !== ply.san && m.avg_loss ? ` (−${Math.round(m.avg_loss)} pts)` : ""]));
+  }
+
+  function onMove(move) {
+    const ply = plies[i];
+    if (move === ply.uci) { i++; return step(); }
+    mistakes++;
+    board.set({ fen: fenAt(i), you: move, best: last(), locked: true });
+    status.className = "verdict bad";
+    status.textContent = `✕ ${ply.legal[move]} isn't the line.`;
+    actions.replaceChildren(h("div", { class: "row" },
+      h("button", { class: "btn primary grow", onclick: () => { status.classList.add("hidden"); step(); } }, "Try again"),
+      h("button", { class: "btn grow", onclick: () => reveal(move) }, "Show move")));
+  }
+
+  function reveal(wrong) {
+    const ply = plies[i];
+    if (!wrong) mistakes++;
+    board.set({ fen: fenAt(i), you: wrong || "", best: ply.uci, locked: true });
+    status.className = "verdict bad";
+    status.replaceChildren("The line plays ", h("b", {}, ply.label), ".");
+    actions.replaceChildren(h("button", { class: "btn primary block", onclick: () => { i++; step(); } }, "Continue"));
+  }
+
+  function finish() {
+    const p = prog(line.id);
+    progress[line.id] = { runs: p.runs + 1, streak: mistakes ? 0 : p.streak + 1 };
+    store("openingProgress", JSON.stringify(progress));
+    title.textContent = "End of the line";
+    board.set({ fen: line.end_fen, best: last(), locked: true });
+    status.className = "verdict " + (mistakes ? "bad" : "good");
+    status.textContent = mistakes ? `Line complete, ${mistakes} mistake${mistakes > 1 ? "s" : ""}.`
+      : learned(line.id) ? "✓ Clean run. This line is learned." : `✓ Clean run (${progress[line.id].streak}/${LEARNED}).`;
+    const at = o.lines.indexOf(line);
+    const next = o.lines[(at + 1) % o.lines.length];
+    actions.replaceChildren(
+      h("button", { class: "btn primary block", onclick: () => go("#l/" + line.id) }, "Again"),
+      h("div", { class: "row" },
+        h("button", { class: "btn grow", onclick: () => go("#l/" + next.id) }, "Next line"),
+        h("button", { class: "btn grow", onclick: () => go("#l/" + o.lines[Math.floor(Math.random() * o.lines.length)].id) }, "Random line")),
+      h("a", { class: "btn block", href: lichessUrl(line.end_fen, o.colour), target: "_blank", rel: "noopener" }, "Open in Lichess"));
+  }
+
+  practising = { id: line.id, refresh: () => { if (i < plies.length && plies[i].mover === o.colour && !board.el.querySelector(".grid.hidden")) showStats(plies[i]); } };
+  content.replaceChildren(
+    h("div", { class: "row" }, h("a", { class: "btn", href: "#o/" + o.id }, "‹ " + o.name), h("div", { class: "grow" }), colourTag(o)),
+    h("div", {}, h("b", {}, line.name), title),
+    board.el, status, panel, moves, actions);
+  step();
+}
+
+window.addEventListener("hashchange", render);
+setup("Openings", load);
+</script>
+</body>
+</html>

@@ -252,3 +252,8 @@ label.field .hint { font-weight: 400; color: var(--muted); }
 .score { font-variant-numeric: tabular-nums; }
 .seg button { min-width: 0; padding: 0 6px; }
 .page { overflow-x: clip; }
+
+/* openings */
+.list-row .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
+.list-row .tag { flex: none; }
+.tabs a { min-width: 0; }

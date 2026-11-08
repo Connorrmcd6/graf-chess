@@ -106,3 +106,30 @@ def test_api_answers_are_cached_briefly(db, database_url):
     app.get("/api/games", {"player": "alice", "mode": "rapid"})
     assert len(calls) == 2
     assert web.App(connect, cache_seconds=0).get("/api/players", {}) and len(calls) == 3
+
+
+def test_opening_stats_match_your_games_by_position(app, db):
+    import chess
+    board = chess.Board()
+    board.push_san("e4")  # the seeded games play 1...f6 here; make one of them follow the Pirc instead
+    db.execute("UPDATE chess.move_analysis SET position_key = %s", (analysis.position_key(board),))
+    db.execute("UPDATE chess.move_analysis SET san = 'd6', uci = 'd7d6' WHERE game_id = 'g2'")
+    s = app.get("/api/opening-stats", {"player": "alice", "mode": "all"})
+    assert s["openings"]["pirc"]["slip"] == {"label": "1…d6", "book": "d6", "san": "f6", "times": 1}
+    assert s["positions"][analysis.position_key(board)]["games"] == 2 and s["openings"]["kid"]["games"] == 0
+    with pytest.raises(web.BadRequest):
+        app.get("/api/opening-stats", {"player": "mallory"})
+
+
+def test_openings_page_and_repertoire_are_served(app):
+    server = ThreadingHTTPServer(("127.0.0.1", 0), web.make_handler(app))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        with urlopen(base + "/api/openings") as r:
+            book = json.load(r)["openings"]
+        assert {o["id"] for o in book} >= {"london", "vienna", "vienna-gambit", "kid", "pirc"}
+        with urlopen(base + "/openings") as r:
+            assert b"tapBoard" in r.read()
+    finally:
+        server.shutdown()

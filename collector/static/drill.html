@@ -31,60 +31,24 @@ async function load() {
   show();
 }
 
-const FILES = "abcdefgh";
-
 function show() {
   const content = document.getElementById("content");
   document.getElementById("sub").textContent = deck.length ? `Position ${index + 1} of ${deck.length}` : "";
   if (!deck.length) return content.replaceChildren(empty("Nothing to drill", "Mistakes and blunders from analysed games appear here."));
   const p = deck[index];
   const legal = p.legal || {};
-  let selected = null, done = false;
-
-  const img = h("img", { class: "big-board", src: boardUrl(p.fen, p.colour, "", ""), alt: "Board position" });
-  const squares = [];
-  const grid = h("div", { class: "grid" });
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const name = p.colour === "white" ? FILES[col] + (8 - row) : FILES[7 - col] + (row + 1);
-      const sq = h("button", { class: "sq", "aria-label": name, onclick: () => tap(name) });
-      sq.dataset.square = name;
-      squares.push(sq);
-      grid.append(sq);
-    }
-  }
+  const board = tapBoard({ colour: p.colour, onMove: (move) => finish(move) });
+  board.set({ fen: p.fen, legal });
   const hint = h("div", { class: "muted small" }, "Tap a piece, then the square to move it to.");
   const result = h("div", { class: "stack hidden" });
   const giveUp = h("button", { class: "btn block", onclick: () => finish(null) }, "Show answer");
   const skip = h("button", { class: "btn block", onclick: next }, "Skip");
 
-  function highlight() {
-    const targets = new Set(Object.keys(legal).filter((m) => m.startsWith(selected || "-")).map((m) => m.slice(2, 4)));
-    for (const sq of squares) {
-      sq.classList.toggle("sel", sq.dataset.square === selected);
-      sq.classList.toggle("target", targets.has(sq.dataset.square));
-    }
-  }
-
-  function tap(square) {
-    if (done) return;
-    if (selected) {
-      const moves = Object.keys(legal).filter((m) => m.startsWith(selected + square));
-      if (moves.length) return finish(moves.find((m) => m.endsWith("q")) || moves[0]);  // promotions: queen
-    }
-    selected = Object.keys(legal).some((m) => m.startsWith(square)) && square !== selected ? square : null;
-    highlight();
-  }
-
   function finish(move) {
-    done = true;
-    selected = null;
-    highlight();
     const correct = move === p.best_uci;
     score[correct ? "got" : "missed"]++;
     store("drillScore", JSON.stringify(score));
-    img.src = boardUrl(p.fen, p.colour, correct ? "" : move || "", p.best_uci);
-    grid.classList.add("hidden");
+    board.set({ fen: p.fen, you: correct ? "" : move || "", best: p.best_uci, locked: true });
     giveUp.classList.add("hidden");
     skip.classList.add("hidden");
     hint.classList.add("hidden");
@@ -110,7 +74,7 @@ function show() {
       h("div", { class: "grow" }, h("b", {}, `${p.colour === "white" ? "White" : "Black"} to move`),
         h("div", { class: "small muted" }, p.repeated ? "You've gone wrong here more than once" : `Move ${p.move_number} · ${shortDate(p.ended_at)}`)),
       h("div", { class: "small muted score" }, `✓ ${score.got}  ✕ ${score.missed}`)),
-    h("div", { class: "drill-board" }, img, grid),
+    board.el,
     hint, result, giveUp, skip);
 }
 

@@ -23,10 +23,12 @@ from urllib.parse import parse_qs, urlparse
 import chess
 import chess.svg
 
+from collector import openings
+
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).with_name("static")
 PAGES = {"/": "index.html", "/review": "review.html", "/drill": "drill.html", "/games": "games.html",
-         "/game": "game.html", "/sw.js": "sw.js"}
+         "/game": "game.html", "/openings": "openings.html", "/sw.js": "sw.js"}
 MODES = ("rapid", "blitz", "bullet", "daily")
 PAGE_SIZE = 20
 UCI = re.compile(r"^[a-h][1-8][a-h][1-8][qrbn]?$")
@@ -241,6 +243,8 @@ class App:
                 if not game:
                     raise BadRequest("unknown game")
                 return {"game": game[0], "errors": rows(conn, GAME_ERRORS_SQL, p | {"game": q.get("id", "")})}
+            if path == "/api/opening-stats":
+                return openings.stats(lambda colour, keys: rows(conn, openings.STATS_SQL, p | {"colour": colour, "keys": keys}))
         raise NotFound(path)
 
 
@@ -273,6 +277,8 @@ def make_handler(app: App):
                 return self._send(200, "image/svg+xml", svg.encode(), "public, max-age=604800, immutable")
             if url.path == "/healthz":
                 return self._send(200, "text/plain", b"ok")
+            if url.path == "/api/openings":  # the repertoire is static: no player and no database
+                return self._api(lambda: {"openings": openings.repertoire()})
             if url.path.startswith("/api/"):
                 return self._api(lambda: app.get(url.path, q))
             self._send(404, "text/plain", b"not found")

@@ -142,6 +142,54 @@ function boardSheet(p) {
       p.url && h("a", { class: "btn", href: p.url, target: "_blank", rel: "noopener" }, "Game")));
 }
 
+// A board you move on by tapping a piece, then its square. legal: {uci: san}. Promotions become queens.
+// Returns {el, set({fen, legal, you, best, locked})}: the image is redrawn server-side with the arrows.
+const FILES = "abcdefgh";
+function tapBoard({ colour, onMove }) {
+  let legal = {}, selected = null, locked = false;
+  const img = h("img", { class: "big-board", alt: "Board position" });
+  const grid = h("div", { class: "grid" });
+  const squares = [];
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const name = colour === "white" ? FILES[col] + (8 - row) : FILES[7 - col] + (row + 1);
+      const sq = h("button", { class: "sq", "aria-label": name, onclick: () => tap(name) });
+      sq.dataset.square = name;
+      squares.push(sq);
+      grid.append(sq);
+    }
+  }
+  function highlight() {
+    const targets = new Set(Object.keys(legal).filter((m) => m.startsWith(selected || "-")).map((m) => m.slice(2, 4)));
+    for (const sq of squares) {
+      sq.classList.toggle("sel", sq.dataset.square === selected);
+      sq.classList.toggle("target", targets.has(sq.dataset.square));
+    }
+  }
+  function tap(square) {
+    if (locked) return;
+    if (selected) {
+      const moves = Object.keys(legal).filter((m) => m.startsWith(selected + square));
+      if (moves.length) {
+        selected = null;
+        highlight();
+        return onMove(moves.find((m) => m.endsWith("q")) || moves[0]);
+      }
+    }
+    selected = Object.keys(legal).some((m) => m.startsWith(square)) && square !== selected ? square : null;
+    highlight();
+  }
+  function set({ fen, legal: moves, you = "", best = "", locked: lock = false }) {
+    if (fen) img.src = boardUrl(fen, colour, you, best);
+    if (moves) legal = moves;
+    locked = lock;
+    selected = null;
+    grid.classList.toggle("hidden", lock);
+    highlight();
+  }
+  return { el: h("div", { class: "drill-board" }, img, grid), set };
+}
+
 function legend() {
   return h("div", { class: "legend", style: "margin-top:10px" },
     h("span", {}, h("i", { style: "background:#d0432b" }), "Your move"),
@@ -195,12 +243,13 @@ const ICONS = {
   patterns: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-6"/></svg>',
   review: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>',
   drill: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>',
+  openings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2"/><path d="M8 7h8M8 11h6"/></svg>',
   games: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>',
 };
 
 function renderTabs() {
   const here = location.pathname === "/game" ? "/games" : location.pathname;
-  const tabs = [["/", "Patterns", "patterns"], ["/review", "Review", "review"], ["/drill", "Drill", "drill"], ["/games", "Games", "games"]];
+  const tabs = [["/", "Patterns", "patterns"], ["/review", "Review", "review"], ["/drill", "Drill", "drill"], ["/openings", "Openings", "openings"], ["/games", "Games", "games"]];
   document.body.append(h("nav", { class: "tabs", "aria-label": "Main" },
     tabs.map(([href, label, icon]) => h("a", { href, "aria-current": href === here ? "page" : null, html: ICONS[icon] + `<span>${label}</span>` }))));
 }
