@@ -47,12 +47,20 @@ class NotFound(Exception):
 # ----------------------------------------------------------------------------- boards
 
 @lru_cache(maxsize=2048)
-def board_svg(fen: str, orientation: str = "white", you: str = "", best: str = "") -> str:
-    """The position with your move as a red arrow and the engine's as a green one."""
+def board_svg(fen: str, orientation: str = "white", you: str = "", best: str = "", play: str = "") -> str:
+    """The position with your move as a red arrow and the engine's as a green one.
+
+    ``play`` is a move made on the board first (a wrong move in the openings), drawn as the red arrow."""
     try:
         board = chess.Board(fen)
     except ValueError:
         raise BadRequest("bad position")
+    if play:
+        move = chess.Move.from_uci(play) if UCI.match(play) else None
+        if move is None or move not in board.legal_moves:
+            raise BadRequest("bad move")
+        board.push(move)
+        you = play
     arrows = []
     for uci, colour in ((you, RED), (best, GREEN)):
         if not uci:
@@ -65,6 +73,14 @@ def board_svg(fen: str, orientation: str = "white", you: str = "", best: str = "
         arrows = arrows[1:]
     return chess.svg.board(board, orientation=orientation != "black", arrows=arrows, colors=COLOURS, coordinates=True,
                            check=board.king(board.turn) if board.is_check() else None)
+
+
+@lru_cache(maxsize=12)
+def piece_svg(symbol: str) -> str:
+    """One piece, the image dragged under your finger on the practice boards."""
+    if len(symbol) != 1 or symbol not in "PNBRQKpnbrqk":
+        raise BadRequest("bad piece")
+    return chess.svg.piece(chess.Piece.from_symbol(symbol))
 
 
 # ------------------------------------------------------------------------------- data
@@ -269,9 +285,12 @@ def make_handler(app: App):
                 if "/" in name or not path.is_file():
                     return self._send(404, "text/plain", b"not found")
                 return self._file(path)
-            if url.path == "/board.svg":
+            if url.path in ("/board.svg", "/piece.svg"):
                 try:
-                    svg = board_svg(q.get("fen", ""), q.get("o", "white"), q.get("you", ""), q.get("best", ""))
+                    if url.path == "/piece.svg":
+                        svg = piece_svg(q.get("p", ""))
+                    else:
+                        svg = board_svg(q.get("fen", ""), q.get("o", "white"), q.get("you", ""), q.get("best", ""), q.get("p", ""))
                 except BadRequest as e:
                     return self._send(400, "text/plain", str(e).encode())
                 return self._send(200, "image/svg+xml", svg.encode(), "public, max-age=604800, immutable")

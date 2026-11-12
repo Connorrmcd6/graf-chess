@@ -242,6 +242,12 @@ label.field .hint { font-weight: 400; color: var(--muted); }
 .drill-board { position: relative; width: 100%; max-width: 520px; margin: 0 auto; }
 /* 64 tap targets laid exactly over the SVG's squares (15px margin in a 390px viewBox). */
 .drill-board .grid { position: absolute; inset: 3.846%; display: grid; grid-template: repeat(8, 1fr) / repeat(8, 1fr); }
+/* Touches on the board move pieces; they never scroll or zoom the page (also while it is locked). */
+.drill-board, .drill-board img { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.drill-board .grid { touch-action: none; }
+.drill-board .ghost { position: absolute; left: 0; top: 0; z-index: 5; pointer-events: none; will-change: transform;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, .35)); }
+.drill-board .sq.lifted { background: rgba(0, 0, 0, .22); }
 .drill-board .sq { border: 0; padding: 0; background: transparent; position: relative; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .drill-board .sq.sel { background: rgba(47, 107, 79, .45); }
 .drill-board .sq.target::after { content: ""; position: absolute; inset: 36%; border-radius: 50%; background: rgba(47, 107, 79, .55); }
@@ -257,3 +263,30 @@ label.field .hint { font-weight: 400; color: var(--muted); }
 .list-row .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; }
 .list-row .tag { flex: none; }
 .tabs a { min-width: 0; }
+
+/* opening practice: header hidden, every area a fixed height so the board never moves */
+body.focus { overscroll-behavior: none; }
+body.focus .header, body.focus .chips { display: none; }
+/* minmax(0, 1fr): one-line text (the line name, the move strip) must not widen the column past the screen */
+.practice { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.practice > * { min-width: 0; }
+.practice .drill-board { max-width: min(520px, max(260px, calc(100svh - 370px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)))); }
+.btn.slim { min-width: 44px; padding: 0 12px; font-size: 1.2rem; }
+.strip { display: flex; align-items: center; gap: 2px; height: 36px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+.strip::-webkit-scrollbar { display: none; }
+.strip .n { color: var(--muted); font-size: .85rem; padding: 0 2px 0 6px; font-variant-numeric: tabular-nums; }
+.strip .m { padding: 4px 8px; border-radius: 8px; font-weight: 600; }
+.strip .m.cur { background: var(--surface-2); box-shadow: inset 0 -2px 0 var(--accent); }
+.strip .m.bad { background: var(--bad-soft); color: var(--bad); box-shadow: none; }
+.feedback { min-height: 48px; display: flex; align-items: center; border-radius: 12px; padding: 8px 14px; font-weight: 600;
+  background: var(--surface-2); }
+.feedback.good { background: var(--good-soft); color: var(--good); }
+.feedback.bad { background: var(--bad-soft); color: var(--bad); }
+.feedback.hint { background: var(--accent-soft); color: var(--accent); }
+.extra { min-height: 44px; }
+.toolbar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tool { min-height: 56px; border: 0; border-radius: 12px; background: var(--surface); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: .8rem; font-weight: 600; }
+.tool svg { width: 22px; height: 22px; }
+.tool:disabled { opacity: .4; }
+.tool:active:not(:disabled) { transform: scale(.97); }

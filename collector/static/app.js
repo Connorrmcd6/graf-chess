@@ -89,8 +89,8 @@ function moveLabel(number, colour, san, cls) {
   return `${number}${colour === "white" ? ". " : "... "}${san}${SUFFIX[cls] || ""}`;
 }
 
-function boardUrl(fen, colour, you, best) {
-  return "/board.svg?" + new URLSearchParams({ fen, o: colour, you: you || "", best: best || "" });
+function boardUrl(fen, colour, you, best, play) {
+  return "/board.svg?" + new URLSearchParams({ fen, o: colour, you: you || "", best: best || "", ...(play ? { p: play } : {}) });
 }
 
 function lichessUrl(fen, colour) {
@@ -142,52 +142,128 @@ function boardSheet(p) {
       p.url && h("a", { class: "btn", href: p.url, target: "_blank", rel: "noopener" }, "Game")));
 }
 
-// A board you move on by tapping a piece, then its square. legal: {uci: san}. Promotions become queens.
-// Returns {el, set({fen, legal, you, best, locked})}: the image is redrawn server-side with the arrows.
+// A board you move on by tapping a piece then its square, or by dragging it there. legal: {uci: san}.
+// Promotions become queens. Returns {el, set({fen, legal, you, best, play, locked})}: the image is redrawn
+// server-side with the arrows; play draws the position after that move (a wrong move, to take back).
 const FILES = "abcdefgh";
+function pieceAt(fen) {
+  const at = {};
+  fen.split(" ")[0].split("/").forEach((rank, r) => {
+    let file = 0;
+    for (const c of rank) {
+      if (/\d/.test(c)) file += Number(c);
+      else at[FILES[file++] + (8 - r)] = c;
+    }
+  });
+  return at;
+}
+
 function tapBoard({ colour, onMove }) {
-  let legal = {}, selected = null, locked = false;
-  const img = h("img", { class: "big-board", alt: "Board position" });
+  let legal = {}, selected = null, locked = false, pieces = {}, drag = null;
+  const img = h("img", { class: "big-board", alt: "Board position", draggable: "false" });
+  const ghost = h("img", { class: "ghost hidden", alt: "", draggable: "false" });
   const grid = h("div", { class: "grid" });
   const squares = [];
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       const name = colour === "white" ? FILES[col] + (8 - row) : FILES[7 - col] + (row + 1);
-      const sq = h("button", { class: "sq", "aria-label": name, onclick: () => tap(name) });
+      // Pointer events do the work; click only fires on its own for the keyboard (detail 0).
+      const sq = h("button", { class: "sq", "aria-label": name, onclick: (e) => { if (!e.detail) tap(name); } });
       sq.dataset.square = name;
       squares.push(sq);
       grid.append(sq);
     }
   }
+  const el = h("div", { class: "drill-board" }, img, grid, ghost);
+
   function highlight() {
     const targets = new Set(Object.keys(legal).filter((m) => m.startsWith(selected || "-")).map((m) => m.slice(2, 4)));
     for (const sq of squares) {
       sq.classList.toggle("sel", sq.dataset.square === selected);
       sq.classList.toggle("target", targets.has(sq.dataset.square));
+      sq.classList.toggle("lifted", !!drag?.moving && sq.dataset.square === drag.from);
     }
+  }
+  const movable = (square) => Object.keys(legal).some((m) => m.startsWith(square));
+  function play(from, to) {
+    const moves = Object.keys(legal).filter((m) => m.startsWith(from + to));
+    if (!moves.length) return false;
+    selected = null;
+    highlight();
+    onMove(moves.find((m) => m.endsWith("q")) || moves[0]);
+    return true;
   }
   function tap(square) {
     if (locked) return;
-    if (selected) {
-      const moves = Object.keys(legal).filter((m) => m.startsWith(selected + square));
-      if (moves.length) {
-        selected = null;
-        highlight();
-        return onMove(moves.find((m) => m.endsWith("q")) || moves[0]);
-      }
-    }
-    selected = Object.keys(legal).some((m) => m.startsWith(square)) && square !== selected ? square : null;
+    if (selected && play(selected, square)) return;
+    selected = movable(square) && square !== selected ? square : null;
     highlight();
   }
-  function set({ fen, legal: moves, you = "", best = "", locked: lock = false }) {
-    if (fen) img.src = boardUrl(fen, colour, you, best);
+  function squareAt(x, y) {
+    const r = grid.getBoundingClientRect();
+    const col = Math.floor((x - r.left) / (r.width / 8)), row = Math.floor((y - r.top) / (r.height / 8));
+    return col < 0 || col > 7 || row < 0 || row > 7 ? null : squares[row * 8 + col].dataset.square;
+  }
+  function moveGhost(e) {
+    const box = el.getBoundingClientRect(), size = grid.getBoundingClientRect().width / 8 * 1.3;
+    const lift = e.pointerType === "touch" ? size * 0.45 : 0;  // keep the piece visible above your finger
+    ghost.style.width = ghost.style.height = size + "px";
+    ghost.style.transform = `translate(${e.clientX - box.left - size / 2}px, ${e.clientY - box.top - size / 2 - lift}px)`;
+  }
+  function endDrag() {
+    drag = null;
+    ghost.classList.add("hidden");
+    highlight();
+  }
+
+  grid.addEventListener("pointerdown", (e) => {
+    if (locked || !e.isPrimary || e.button > 0) return;
+    const square = squareAt(e.clientX, e.clientY);
+    if (!square) return;
+    e.preventDefault();
+    if (selected && selected !== square && play(selected, square)) return;
+    if (!movable(square)) { selected = null; return highlight(); }
+    const wasSelected = selected === square;
+    selected = square;
+    drag = { from: square, x: e.clientX, y: e.clientY, moving: false, wasSelected };
+    grid.setPointerCapture(e.pointerId);
+    highlight();
+  });
+  grid.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    if (!drag.moving) {
+      if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
+      drag.moving = true;
+      ghost.src = "/piece.svg?p=" + pieces[drag.from];
+      ghost.classList.remove("hidden");
+      highlight();
+    }
+    moveGhost(e);
+  });
+  grid.addEventListener("pointerup", (e) => {
+    if (!drag) return;
+    const { from, moving, wasSelected } = drag;
+    endDrag();
+    if (moving) {
+      const to = squareAt(e.clientX, e.clientY);
+      if (to && to !== from) play(from, to);
+    } else if (wasSelected) {  // tapping the selected piece again puts it down
+      selected = null;
+      highlight();
+    }
+  });
+  grid.addEventListener("pointercancel", endDrag);
+
+  function set({ fen, legal: moves, you = "", best = "", play: played = "", locked: lock = false }) {
+    if (fen) { img.src = boardUrl(fen, colour, you, best, played); pieces = pieceAt(fen); }
     if (moves) legal = moves;
     locked = lock;
     selected = null;
-    grid.classList.toggle("hidden", lock);
+    if (drag) endDrag();
+    grid.classList.toggle("locked", lock);
     highlight();
   }
-  return { el: h("div", { class: "drill-board" }, img, grid), set };
+  return { el, set };
 }
 
 function legend() {

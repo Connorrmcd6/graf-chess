@@ -17,7 +17,7 @@
 <main class="page"><div id="content" class="stack"></div></main>
 <script src="/static/app.js"></script>
 <script>
-// Views live in the hash so the back button works: "" (openings), "#o/<opening>", "#l/<line>" (practice).
+// Views live in the hash so the browser back button works: "" (openings), "#o/<opening>", "#l/<line>" (practice).
 let book = null, stats = { positions: {}, lines: {}, openings: {} }, practising = null;
 const LEARNED = 3;  // clean runs in a row
 let progress = {};
@@ -47,7 +47,9 @@ function render() {
   if (!book) return;
   const content = document.getElementById("content");
   const [kind, id] = location.hash.slice(1).split("/");
+  practising?.stop();
   practising = null;
+  document.body.classList.remove("focus");
   window.scrollTo(0, 0);
   if (kind === "l" && find(id).length) return practise(...find(id));
   const opening = kind === "o" && book.find((o) => o.id === id);
@@ -61,20 +63,29 @@ function slipNote(slip) {
     `You played ${slip.label.replace(slip.book, slip.san)} instead of ${slip.label} in ${slip.times} game${slip.times > 1 ? "s" : ""}`);
 }
 
+function openingRow(o) {
+  const games = stats.openings[o.id]?.games || 0;
+  const done = o.lines.filter((l) => learned(l.id)).length;
+  return h("a", { class: "list-row", href: "#o/" + o.id },
+    h("div", { class: "grow" },
+      h("div", {}, h("b", {}, o.name)),
+      h("div", { class: "meta" }, h("span", { class: "small muted" },
+        `${o.lines.length} lines · ${done} learned · ${games} of your games`)),
+      slipNote(stats.openings[o.id]?.slip)),
+    h("span", { class: "muted", "aria-hidden": "true" }, "›"));
+}
+
 function openingsView() {
-  return [h("div", { class: "list" }, book.map((o) => {
-    const games = stats.openings[o.id]?.games || 0;
-    const done = o.lines.filter((l) => learned(l.id)).length;
-    return h("a", { class: "list-row", href: "#o/" + o.id },
-      h("div", { class: "grow" },
-        h("div", {}, h("b", {}, o.name)),
-        h("div", { class: "meta" }, colourTag(o), h("span", { class: "small muted" },
-          `${o.lines.length} lines · ${done} learned · ${games} of your games`)),
-        slipNote(stats.openings[o.id]?.slip)),
-      h("span", { class: "muted", "aria-hidden": "true" }, "›"));
-  })), h("p", { class: "small muted" },
-    "Tap an opening, then a line. The board plays your opponent's moves; you tap yours. ",
-    `A line counts as learned after ${LEARNED} runs in a row with no mistakes.`)];
+  const group = (title, list) => list.length ? section(title, h("div", { class: "list" }, list.map(openingRow))) : [];
+  const fun = book.filter((o) => o.fun);
+  return [
+    ...group("As White", book.filter((o) => !o.fun && o.colour === "white")),
+    ...group("As Black", book.filter((o) => !o.fun && o.colour === "black")),
+    ...group("Just for fun", fun),
+    h("p", { class: "small muted" },
+      "Tap an opening, then a line. The board plays your opponent's moves; you drag or tap yours. ",
+      `A line counts as learned after ${LEARNED} runs in a row with no mistakes.`),
+  ];
 }
 
 function linesView(o) {
@@ -101,45 +112,80 @@ function linesView(o) {
   ];
 }
 
+const TOOL_ICONS = {
+  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',
+  hint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
+  restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
+};
+
+// Practice works like a chess.com lesson: a wrong move is played on the board and Back takes it back.
+// Back otherwise steps to your previous move; Hint draws the line's move for you to play (and costs the clean run).
 function practise(o, line) {
   const content = document.getElementById("content");
   const plies = line.plies;
-  const fenAt = (i) => (i < plies.length ? plies[i].fen : line.end_fen);
-  let i = 0, mistakes = 0, timer = null;
+  const fenAt = (k) => (k < plies.length ? plies[k].fen : line.end_fen);
+  const mine = (k) => k < plies.length && plies[k].mover === o.colour;
+  let i = 0, wrong = null, timer = null, recorded = false;
+  const missed = new Set();  // your plies with a wrong move or a hint, counted once each
   const board = tapBoard({ colour: o.colour, onMove });
-  const status = h("div", { class: "verdict hidden" });
-  const actions = h("div", { class: "stack" });
-  const panel = h("div", { class: "small" });
-  const moves = h("div", { class: "line" });
-  const title = h("div", { class: "small muted" });
+  const strip = h("div", { class: "strip", "aria-label": "Moves" });
+  const feedback = h("div", { class: "feedback", role: "status" });
+  const extra = h("div", { class: "extra small" });
+  const tool = (icon, label, onclick) => h("button", { class: "tool", onclick, html: TOOL_ICONS[icon] + `<span>${label}</span>` });
+  const backBtn = tool("back", "Back", back), hintBtn = tool("hint", "Hint", hint);
 
   function last() { return i > 0 ? plies[i - 1].uci : ""; }
-  function done(n) { return plies.slice(0, n).map((p, k) => (p.mover === "white" || k === 0 ? p.label : p.san)).join(" "); }
+  function say(text, kind = "") { feedback.className = "feedback " + kind; feedback.replaceChildren(...[text].flat()); }
+
+  function drawStrip() {
+    const cells = [];
+    plies.slice(0, i).forEach((p, k) => {
+      if (p.mover === "white") cells.push(h("span", { class: "n" }, p.label.match(/^\d+/)[0] + "."));
+      else if (k === 0) cells.push(h("span", { class: "n" }, p.label.match(/^\d+/)[0] + "…"));
+      cells.push(h("span", { class: "m" }, p.san));
+    });
+    if (wrong) {
+      const p = plies[i];
+      if (p.mover === "white") cells.push(h("span", { class: "n" }, p.label.match(/^\d+/)[0] + "."));
+      cells.push(h("span", { class: "m bad" }, p.legal[wrong] + " ✕"));
+    }
+    if (!cells.length) cells.push(h("span", { class: "n" }, "Starting position"));
+    const lastMove = [...cells].reverse().find((c) => c.classList.contains("m"));
+    lastMove?.classList.add("cur");
+    strip.replaceChildren(...cells);
+    strip.scrollLeft = strip.scrollWidth;
+  }
+
+  function tools() {
+    let prev = i - 1;
+    while (prev >= 0 && !mine(prev)) prev--;
+    backBtn.disabled = !wrong && prev < 0;
+    hintBtn.disabled = !!wrong || !mine(i);
+  }
 
   function step() {
     clearTimeout(timer);
-    moves.textContent = done(i) || "Starting position";
-    actions.replaceChildren();
-    status.classList.add("hidden");
-    panel.replaceChildren();
+    wrong = null;
+    drawStrip();
+    extra.replaceChildren();
     if (i >= plies.length) return finish();
+    tools();
     const ply = plies[i];
-    if (ply.mover !== o.colour) {
-      title.textContent = "Opponent to move…";
+    if (!mine(i)) {
+      say("Opponent to move…");
       board.set({ fen: fenAt(i), best: last(), locked: true });
       timer = setTimeout(() => { i++; step(); }, i === 0 ? 700 : 450);
       return;
     }
-    title.textContent = `Your move (${ply.label.replace(ply.san, "?")})`;
+    say(`Your move (${ply.label.replace(ply.san, "?")})`);
     board.set({ fen: fenAt(i), legal: ply.legal, best: last() });
-    actions.replaceChildren(h("button", { class: "btn block", onclick: () => reveal(null) }, "Show move"));
     showStats(ply);
   }
 
   function showStats(ply) {
     const s = ply.key && stats.positions[ply.key];
-    if (!s) return panel.replaceChildren(h("span", { class: "muted" }, "You haven't reached this position in your analysed games."));
-    panel.replaceChildren(h("span", { class: "muted" }, `In your games here (${s.games}): `),
+    if (!s) return extra.replaceChildren(h("span", { class: "muted" }, "You haven't reached this position in your analysed games."));
+    extra.replaceChildren(h("span", { class: "muted" }, `In your games here (${s.games}): `),
       ...s.moves.flatMap((m, k) => [k ? " · " : "",
         h("b", { style: m.san === ply.san ? "color:var(--good)" : "color:var(--bad)" }, m.san),
         ` ${m.games}×`, m.san !== ply.san && m.avg_loss ? ` (−${Math.round(m.avg_loss)} pts)` : ""]));
@@ -148,48 +194,65 @@ function practise(o, line) {
   function onMove(move) {
     const ply = plies[i];
     if (move === ply.uci) { i++; return step(); }
-    mistakes++;
-    board.set({ fen: fenAt(i), you: move, best: last(), locked: true });
-    status.className = "verdict bad";
-    status.textContent = `✕ ${ply.legal[move]} isn't the line.`;
-    actions.replaceChildren(h("div", { class: "row" },
-      h("button", { class: "btn primary grow", onclick: () => { status.classList.add("hidden"); step(); } }, "Try again"),
-      h("button", { class: "btn grow", onclick: () => reveal(move) }, "Show move")));
+    missed.add(i);
+    wrong = move;
+    board.set({ fen: fenAt(i), play: move, locked: true });
+    say(["✕ ", h("b", {}, ply.legal[move]), " isn't the line. Tap Back to try again."], "bad");
+    drawStrip();
+    tools();
   }
 
-  function reveal(wrong) {
+  function back() {
+    if (wrong) return step();  // take the wrong move back
+    let prev = i - 1;
+    while (prev >= 0 && !mine(prev)) prev--;
+    if (prev < 0) return;
+    i = prev;
+    step();
+  }
+
+  function hint() {
+    if (wrong || !mine(i)) return;
     const ply = plies[i];
-    if (!wrong) mistakes++;
-    board.set({ fen: fenAt(i), you: wrong || "", best: ply.uci, locked: true });
-    status.className = "verdict bad";
-    status.replaceChildren("The line plays ", h("b", {}, ply.label), ".");
-    actions.replaceChildren(h("button", { class: "btn primary block", onclick: () => { i++; step(); } }, "Continue"));
+    missed.add(i);
+    board.set({ fen: fenAt(i), legal: ply.legal, best: ply.uci });
+    say(["Hint: play the green arrow, ", h("b", {}, ply.label), "."], "hint");
+    hintBtn.disabled = true;
   }
 
   function finish() {
-    const p = prog(line.id);
-    progress[line.id] = { runs: p.runs + 1, streak: mistakes ? 0 : p.streak + 1 };
-    store("openingProgress", JSON.stringify(progress));
-    title.textContent = "End of the line";
+    if (!recorded) {
+      recorded = true;
+      const p = prog(line.id);
+      progress[line.id] = { runs: p.runs + 1, streak: missed.size ? 0 : p.streak + 1 };
+      store("openingProgress", JSON.stringify(progress));
+    }
     board.set({ fen: line.end_fen, best: last(), locked: true });
-    status.className = "verdict " + (mistakes ? "bad" : "good");
-    status.textContent = mistakes ? `Line complete, ${mistakes} mistake${mistakes > 1 ? "s" : ""}.`
-      : learned(line.id) ? "✓ Clean run. This line is learned." : `✓ Clean run (${progress[line.id].streak}/${LEARNED}).`;
+    say(missed.size ? `Line complete, ${missed.size} mistake${missed.size > 1 ? "s" : ""}.`
+      : learned(line.id) ? "✓ Clean run. This line is learned." : `✓ Clean run (${progress[line.id].streak}/${LEARNED}).`,
+      missed.size ? "bad" : "good");
+    tools();
     const at = o.lines.indexOf(line);
     const next = o.lines[(at + 1) % o.lines.length];
-    actions.replaceChildren(
-      h("button", { class: "btn primary block", onclick: () => go("#l/" + line.id) }, "Again"),
-      h("div", { class: "row" },
-        h("button", { class: "btn grow", onclick: () => go("#l/" + next.id) }, "Next line"),
-        h("button", { class: "btn grow", onclick: () => go("#l/" + o.lines[Math.floor(Math.random() * o.lines.length)].id) }, "Random line")),
-      h("a", { class: "btn block", href: lichessUrl(line.end_fen, o.colour), target: "_blank", rel: "noopener" }, "Open in Lichess"));
+    extra.replaceChildren(h("div", { class: "row" },
+      h("button", { class: "btn primary grow", onclick: () => go("#l/" + next.id) }, "Next line"),
+      h("button", { class: "btn grow", onclick: () => go("#l/" + o.lines[Math.floor(Math.random() * o.lines.length)].id) }, "Random"),
+      h("a", { class: "btn", href: lichessUrl(line.end_fen, o.colour), target: "_blank", rel: "noopener" }, "Lichess")));
   }
 
-  practising = { id: line.id, refresh: () => { if (i < plies.length && plies[i].mover === o.colour && !board.el.querySelector(".grid.hidden")) showStats(plies[i]); } };
-  content.replaceChildren(
-    h("div", { class: "row" }, h("a", { class: "btn", href: "#o/" + o.id }, "‹ " + o.name), h("div", { class: "grow" }), colourTag(o)),
-    h("div", {}, h("b", {}, line.name), title),
-    board.el, status, panel, moves, actions);
+  practising = {
+    id: line.id,
+    stop: () => clearTimeout(timer),
+    refresh: () => { if (mine(i) && !wrong) showStats(plies[i]); },
+  };
+  document.body.classList.add("focus");
+  content.replaceChildren(h("div", { class: "practice" },
+    h("div", { class: "row" },
+      h("a", { class: "btn slim", href: "#o/" + o.id, "aria-label": "Back to " + o.name }, "‹"),
+      h("div", { class: "grow ellipsis" }, h("b", {}, line.name), h("span", { class: "muted small" }, " · " + o.name)),
+      colourTag(o)),
+    board.el, strip, feedback, extra,
+    h("div", { class: "toolbar" }, backBtn, hintBtn, tool("restart", "Restart", () => go("#l/" + line.id)))));
   step();
 }
 

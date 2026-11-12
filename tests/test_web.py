@@ -20,6 +20,18 @@ def test_board_svg_draws_both_arrows_and_rejects_bad_input():
             web.board_svg(*args)
 
 
+def test_board_svg_plays_a_move_first_and_pieces_are_served():
+    played = web.board_svg(FEN, "black", play="g8f6")
+    assert played != web.board_svg(FEN, "black") and played.count("arrow") >= 1
+    for bad in ("g8g6", "zz99"):
+        with pytest.raises(web.BadRequest):
+            web.board_svg(FEN, "black", play=bad)
+    assert web.piece_svg("n").startswith("<svg")
+    for bad in ("", "x", "NN", "<"):
+        with pytest.raises(web.BadRequest):
+            web.piece_svg(bad)
+
+
 def _seed(db):
     """Two games for alice that both reach the same position and repeat the same mistake there."""
     analysis.ensure_schema(db)
@@ -81,9 +93,11 @@ def test_http_server_serves_pages_boards_and_json(app):
                 assert "frame-ancestors 'none'" in r.headers["Content-Security-Policy"]
         with urlopen(f"{base}/board.svg?fen={FEN.replace(' ', '+')}&o=black&you=f7f6&best=e7e5") as r:
             assert r.headers["Content-Type"] == "image/svg+xml" and "immutable" in r.headers["Cache-Control"]
+        with urlopen(base + "/piece.svg?p=Q") as r:
+            assert r.headers["Content-Type"] == "image/svg+xml"
         with urlopen(base + "/api/players") as r:
             assert [p["username"] for p in json.load(r)["players"]] == ["alice", "bob"]
-        for path in ("/board.svg?fen=bad", "/api/overview?player=mallory", "/static/../web.py", "/nope"):
+        for path in ("/board.svg?fen=bad", "/piece.svg?p=z", "/api/overview?player=mallory", "/static/../web.py", "/nope"):
             with pytest.raises(HTTPError) as e:
                 urlopen(base + path)
             assert e.value.code in (400, 404)

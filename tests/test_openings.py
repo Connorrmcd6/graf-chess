@@ -8,7 +8,7 @@ def test_every_line_replays_legally_and_marks_your_moves():
     ids = [o["id"] for o in book] + [ln["id"] for o in book for ln in o["lines"]]
     assert len(ids) == len(set(ids))
     for o, src in zip(book, openings.REPERTOIRE):
-        assert o["colour"] in ("white", "black") and len(o["lines"]) >= 3
+        assert o["colour"] in ("white", "black") and len(o["lines"]) >= (2 if o["fun"] else 3)
         for ln in o["lines"]:
             board = chess.Board()
             for index, ply in enumerate(ln["plies"]):
@@ -51,3 +51,12 @@ def test_stats_find_your_usual_slip():
     assert s["openings"]["pirc"] == {"games": 1, "slip": {"label": "1…d6", "book": "d6", "san": "e5", "times": 2}}
     assert s["openings"]["london"] == {"games": 0, "slip": None}
     assert s["lines"]["pirc-austrian"] == {"games": 0, "deepest": "2…Nf6", "slip": None}
+
+
+def test_london_meets_the_englund_and_the_icbm_wins_the_queen():
+    book = {o["id"]: o for o in openings.repertoire()}
+    assert any(ln["moves"].startswith("1.d4 e5") for ln in book["london"]["lines"])
+    assert book["fun"]["fun"] and not book["london"]["fun"]
+    icbm = next(ln for ln in book["fun"]["lines"] if ln["id"] == "fun-icbm")
+    board = chess.Board(icbm["end_fen"])
+    assert not board.pieces(chess.QUEEN, chess.BLACK) and board.pieces(chess.QUEEN, chess.WHITE)
