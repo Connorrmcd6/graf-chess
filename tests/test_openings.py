@@ -100,3 +100,14 @@ def test_every_note_belongs_to_a_line():
     assert openings.NOTES_TO_CHECK <= set(openings.NOTES)
     london = next(o for o in openings.repertoire() if o["id"] == "london")
     assert all(any("note" in p for p in ln["plies"] if p["mover"] == "white") for ln in london["lines"])
+
+
+def test_notes_on_moves_both_colours_reach_name_their_colour():
+    paths = {"white": set(), "black": set()}
+    for o in openings.REPERTOIRE:
+        if not o.get("fun"):
+            for ln in o["lines"]:
+                sans = openings._sans(ln["moves"])
+                paths[o["colour"]] |= {" ".join(sans[:k]) for k in range(1, len(sans) + 1)}
+    shared = [k for k in openings.NOTES if k in paths["white"] & paths["black"]]
+    assert not shared, shared
