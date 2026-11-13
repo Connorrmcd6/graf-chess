@@ -434,8 +434,8 @@ const ICONS = {
 };
 
 function renderTabs() {
-  const here = location.pathname === "/game" ? "/games" : location.pathname;
-  const tabs = [["/", "Patterns", "patterns"], ["/review", "Review", "review"], ["/drill", "Drill", "drill"], ["/openings", "Openings", "openings"], ["/games", "Games", "games"]];
+  const here = { "/game": "/games", "/openings": "/" }[location.pathname] || location.pathname;
+  const tabs = [["/", "Openings", "openings"], ["/drill", "Drill", "drill"], ["/patterns", "Patterns", "patterns"], ["/review", "Review", "review"], ["/games", "Games", "games"]];
   document.body.append(h("nav", { class: "tabs", "aria-label": "Main" },
     tabs.map(([href, label, icon]) => h("a", { href, "aria-current": href === here ? "page" : null, html: ICONS[icon] + `<span>${label}</span>` }))));
 }

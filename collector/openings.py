@@ -39,22 +39,20 @@ REPERTOIRE = [
          "moves": "1.e4 e5 2.Nc3 Nc6 3.Bc4 Nf6 4.d3 Bc5 5.f4 d6 6.Nf3"},
         {"id": "vienna-bc5", "name": "2…Bc5",
          "moves": "1.e4 e5 2.Nc3 Bc5 3.Nf3 d6 4.d4 exd4 5.Nxd4 Nf6 6.Be2 O-O 7.O-O"},
-        {"id": "vienna-dracula", "name": "Frankenstein–Dracula",
-         "moves": "1.e4 e5 2.Nc3 Nf6 3.Bc4 Nxe4 4.Qh5 Nd6 5.Bb3 Nc6 6.Nb5 g6 7.Qf3 f5 8.Qd5 Qe7 9.Nxc7+ Kd8 10.Nxa8"},
+        {"id": "vienna-qg4", "name": "2…Nc6 3.Bc4 Bc5 4.Qg4",
+         "moves": "1.e4 e5 2.Nc3 Nc6 3.Bc4 Bc5 4.Qg4 g6 5.Qf3 Nf6 6.Nge2 d6 7.d3"},
+        {"id": "vienna-na5", "name": "2…Nc6 3.Bc4 Nf6 4.d3 Na5",
+         "moves": "1.e4 e5 2.Nc3 Nc6 3.Bc4 Nf6 4.d3 Na5 5.Nge2 Nxc4 6.dxc4 Bc5 7.O-O d6 8.Bg5"},
     ]},
-    {"id": "vienna-gambit", "name": "Vienna Gambit", "colour": "white", "tabiya": 2, "preview": 5, "lines": [
+    {"id": "vienna-gambit", "name": "Vienna Gambit (2…Nf6 3.f4)", "colour": "white", "tabiya": 2, "preview": 5, "lines": [
         {"id": "gambit-exf4", "name": "Accepted: 3…exf4 4.e5",
          "moves": "1.e4 e5 2.Nc3 Nf6 3.f4 exf4 4.e5 Ng8 5.Nf3 d6 6.d4 dxe5 7.Qe2 Be7 8.dxe5"},
-        {"id": "gambit-nc6", "name": "Accepted: 2…Nc6 3.f4 exf4",
-         "moves": "1.e4 e5 2.Nc3 Nc6 3.f4 exf4 4.Nf3 Nf6 5.d4 d5 6.exd5 Nxd5 7.Nxd5 Qxd5 8.Bxf4"},
         {"id": "gambit-d5", "name": "Declined: 3…d5, the main line",
          "moves": "1.e4 e5 2.Nc3 Nf6 3.f4 d5 4.fxe5 Nxe4 5.Nf3 Be7 6.d4 O-O 7.Bd3 f5 8.exf6 Bxf6 9.O-O"},
         {"id": "gambit-d6", "name": "Declined: 3…d6",
          "moves": "1.e4 e5 2.Nc3 Nf6 3.f4 d6 4.Nf3 Nc6 5.Bb5 Bd7 6.d3"},
         {"id": "gambit-declined-nc6", "name": "Declined: 3…Nc6 4.fxe5",
          "moves": "1.e4 e5 2.Nc3 Nf6 3.f4 Nc6 4.fxe5 Nxe5 5.d4 Ng6 6.e5 Ng8 7.Nf3 d6 8.Bc4"},
-        {"id": "gambit-declined-bc5", "name": "Declined: 2…Nc6 3.f4 Bc5",
-         "moves": "1.e4 e5 2.Nc3 Nc6 3.f4 Bc5 4.Nf3 d6 5.Bc4 Nf6 6.d3"},
     ]},
     {"id": "grand-prix", "name": "Grand Prix Attack vs the Sicilian", "colour": "white", "tabiya": 2, "lines": [
         {"id": "gp-g6", "name": "2…Nc6 3.f4 g6",
@@ -167,6 +165,8 @@ REPERTOIRE = [
          "moves": "1.e4 d5 2.Nf3 dxe4 3.Ng5 Nf6 4.d3 exd3 5.Bxd3 h6 6.Nxf7 Kxf7 7.Bg6+ Kxg6 8.Qxd8"},
         {"id": "fun-alien", "name": "Alien Gambit",
          "moves": "1.e4 c6 2.d4 d5 3.Nc3 dxe4 4.Nxe4 Nf6 5.Ng5 h6 6.Nxf7 Kxf7 7.Bc4+ e6 8.Nf3 Bd6 9.O-O"},
+        {"id": "fun-dracula", "name": "Frankenstein-Dracula (Vienna 3.Bc4)",
+         "moves": "1.e4 e5 2.Nc3 Nf6 3.Bc4 Nxe4 4.Qh5 Nd6 5.Bb3 Nc6 6.Nb5 g6 7.Qf3 f5 8.Qd5 Qe7 9.Nxc7+ Kd8 10.Nxa8"},
     ]},
 ]
 

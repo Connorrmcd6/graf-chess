@@ -53,6 +53,23 @@ function status(id) {
   if (p.streak < LEARNED) return "learning";
   return Date.now() - (p.last || 0) > reviewDays(p.streak) * DAY ? "due" : "learned";
 }
+const today = () => new Date().toLocaleDateString("en-CA");
+function logRun() {
+  let log = {};
+  try { log = JSON.parse(store("practiceLog") || "{}"); } catch { log = {}; }
+  log[today()] = (log[today()] || 0) + 1;
+  store("practiceLog", JSON.stringify(log));
+}
+// Days in a row with at least one finished line, counting today or, if not yet, yesterday.
+function streak() {
+  let log = {};
+  try { log = JSON.parse(store("practiceLog") || "{}"); } catch { return { days: 0, today: 0 }; }
+  const day = new Date();
+  if (!log[today()]) day.setDate(day.getDate() - 1);
+  let days = 0;
+  while (log[day.toLocaleDateString("en-CA")]) { days++; day.setDate(day.getDate() - 1); }
+  return { days, today: log[today()] || 0 };
+}
 function save(id, change) { progress[id] = { ...prog(id), ...change }; store("openingProgress", JSON.stringify(progress)); }
 function go(hash) { if (location.hash === hash) render(); else location.hash = hash; }
 function lineHref(line) { return (status(line.id) === "new" ? "#learn/" : "#l/") + line.id; }
@@ -80,8 +97,8 @@ function render() {
     return practise([{ o, line }], kind === "learn" ? "learn" : "practise");
   }
   if (kind === "h" && hiddenPool(id).length) return practise(hiddenPool(id), "hidden", id);
-  const opening = kind === "o" && book.find((o) => o.id === id);
-  content.replaceChildren(...(opening ? linesView(opening) : openingsView()).filter((c) => c != null));
+  const opening = (kind === "o" || kind === "t") && book.find((o) => o.id === id);
+  content.replaceChildren(...(opening ? linesView(opening, kind === "t") : openingsView()).filter((c) => c != null));
 }
 
 function colourTag(o) { return h("span", { class: "tag" }, o.colour === "white" ? "as White" : "as Black"); }
@@ -119,15 +136,20 @@ function openingRow(o) {
     h("span", { class: "muted chev", "aria-hidden": "true" }, "›"));
 }
 
-function nextCard(lines, title) {
+function nextCard(lines, title, hero = false) {
   const next = pickNext(lines);
   const [o] = find(next.id);
   const c = counts(lines);
   const why = { due: "Due for review", learning: "Keep it going", new: "Something new", learned: "Keep it fresh" }[status(next.id)];
-  return h("div", { class: "card next" },
+  const st = streak();
+  const streakNote = hero && h("div", { class: "streak" }, st.days
+    ? `🔥 ${st.days}-day streak` + (st.today ? ` · ${st.today} line${st.today > 1 ? "s" : ""} today` : " · practise to keep it")
+    : "Finish a line to start a streak");
+  return h("div", { class: "card next" + (hero ? " hero" : "") },
     h("div", { class: "row" },
       h("div", { class: "grow" }, h("h2", {}, title),
-        h("div", { class: "small muted" }, `${c.learned + c.due} of ${lines.length} lines learned` + (c.due ? ` · ${c.due} to review` : ""))),
+        h("div", { class: "small muted" }, `${c.learned + c.due} of ${lines.length} lines learned` + (c.due ? ` · ${c.due} to review` : "")),
+        streakNote),
       h("div", { class: "ring", style: `--p:${((c.learned + c.due) / lines.length) * 100}` }, h("span", {}, `${Math.round(((c.learned + c.due) / lines.length) * 100)}%`))),
     h("a", { class: "btn primary block next-btn", href: lineHref(next) },
       h("span", { class: "grow ellipsis", style: "text-align:left" }, h("span", { class: "why" }, why), next.name, h("span", { class: "of" }, " · " + o.name)),
@@ -143,10 +165,15 @@ function hiddenButton(href, label, sub) {
 function openingsView() {
   const group = (title, list) => list.length ? section(title, h("div", { class: "list" }, list.map(openingRow))) : [];
   return [
-    nextCard(allLines(), "Practise"),
+    nextCard(allLines(), "Today's practice", true),
     h("div", { class: "hidden-pair" },
       hiddenButton("#h/white", "As White", "Surprise line"),
       hiddenButton("#h/black", "As Black", "Surprise line")),
+    h("div", { class: "list" }, h("a", { class: "list-row drill-link", href: "/drill" },
+      h("span", { class: "icon", html: ICONS.drill }),
+      h("div", { class: "grow" }, h("b", {}, "Drill your mistakes"),
+        h("div", { class: "small muted" }, "Find the move you missed in your own games")),
+      h("span", { class: "muted chev", "aria-hidden": "true" }, "›"))),
     ...group("As White", book.filter((o) => !o.fun && o.colour === "white")),
     ...group("As Black", book.filter((o) => !o.fun && o.colour === "black")),
     ...group("Just for fun", book.filter((o) => o.fun)),
@@ -157,14 +184,17 @@ function openingsView() {
   ];
 }
 
-function linesView(o) {
+function linesView(o, tree) {
   return [
     h("div", { class: "row" }, h("a", { class: "btn slim", href: "#", "aria-label": "Back to openings" }, "‹"),
       h("h2", { class: "grow ellipsis" }, o.name), colourTag(o)),
     slipNote(stats.openings[o.id]?.slip),
     nextCard(o.lines, "Up next"),
     hiddenButton("#h/" + o.id, "Hidden line", o.colour === "black" ? "White picks the line, you answer" : "Black picks the line, you answer"),
-    h("div", { class: "list" }, o.lines.map((l) => {
+    h("div", { class: "seg", role: "group", "aria-label": "View" },
+      h("button", { "aria-pressed": String(!tree), onclick: () => go("#o/" + o.id) }, "Lines"),
+      h("button", { "aria-pressed": String(tree), onclick: () => go("#t/" + o.id) }, "Tree")),
+    tree ? treeView(o) : h("div", { class: "list" }, o.lines.map((l) => {
       const s = stats.lines[l.id] || {};
       return h("a", { class: "list-row", href: lineHref(l) },
         thumb(l.end_fen, o.colour),
@@ -179,6 +209,57 @@ function linesView(o) {
   ];
 }
 
+// The opening's lines merged into one tree: a node per move, split where the lines go different ways.
+function buildTree(o) {
+  const root = { kids: [], lines: o.lines, depth: 0 };
+  for (const line of o.lines) {
+    let node = root;
+    line.plies.forEach((ply, k) => {
+      let next = node.kids.find((c) => c.ply.uci === ply.uci);
+      if (!next) node.kids.push(next = { ply, kids: [], lines: [], depth: k + 1, via: line });
+      next.lines.push(line);
+      node = next;
+    });
+    node.end = line;
+  }
+  return root;
+}
+
+function movesText(plies, colour) {
+  return plies.map((p, k) => h("span", { class: p.mover === colour ? "you" : "them" }, p.mover === "white" || k === 0 ? p.label : p.san));
+}
+
+function treeView(o) {
+  const root = buildTree(o);
+  function branch(node) {
+    const chain = [node];
+    let last = node;
+    while (last.kids.length === 1 && !last.end) chain.push(last = last.kids[0]);
+    const forks = last.kids.length > 1;
+    return h("div", { class: "tnode" },
+      h("button", { class: "tchain", onclick: () => branchSheet(o, last) }, ...movesText(chain.map((n) => n.ply), o.colour),
+        forks && h("span", { class: "tcount" }, `${last.lines.length} lines`)),
+      last.end && h("a", { class: "tleaf", href: lineHref(last.end) }, h("span", { class: "grow" }, last.end.name), statusTag(last.end.id)),
+      last.kids.length ? h("div", { class: "tkids" + (forks ? " fork" : "") }, last.kids.map(branch)) : "");
+  }
+  return h("div", { class: "card tree" },
+    h("div", { class: "small muted" }, h("span", { class: "them" }, "Opponent"), " picks at each split; ",
+      h("span", { class: "you" }, "your moves"), " are the same in every line. Tap moves to see the position."),
+    root.kids.map(branch));
+}
+
+function branchSheet(o, node) {
+  const line = node.via, after = node.depth < line.plies.length ? line.plies[node.depth].fen : line.end_fen;
+  const key = `${o.id}~${line.id}~${node.depth}`;
+  sheet(h("div", { class: "title" }, o.name),
+    h("div", { class: "line" }, ...movesText(line.plies.slice(0, node.depth), o.colour)),
+    h("img", { class: "big-board", style: "margin-top:12px", src: boardUrl(after, o.colour, "", node.ply.uci), alt: "Board position" }),
+    h("button", { class: "btn primary block", style: "margin-top:14px", onclick: () => { closeSheet(); go(node.lines.length > 1 ? "#h/" + key : lineHref(line)); } },
+      node.lines.length > 1 ? `Practise this branch (${node.lines.length} lines, hidden)` : "Practise this line"),
+    h("div", { class: "menu" }, node.lines.map((l) => h("button", { onclick: () => { closeSheet(); go(lineHref(l)); } },
+      h("span", { class: "grow" }, l.name), statusTag(l.id)))));
+}
+
 const TOOL_ICONS = {
   back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',
   hint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>',
@@ -188,10 +269,19 @@ const buzz = (pattern) => navigator.vibrate?.(pattern);
 
 // The lines a hidden run can play: one opening, or every opening for a colour.
 function hiddenPool(key) {
+  if (key.includes("~")) {
+    const [, lineId, depth] = key.split("~"), [o, line] = find(lineId);
+    if (!o) return [];
+    const prefix = line.plies.slice(0, Number(depth)).map((p) => p.uci).join();
+    return o.lines.filter((l) => l.plies.slice(0, Number(depth)).map((p) => p.uci).join() === prefix).map((l) => ({ o, line: l }));
+  }
   const openings = key === "white" || key === "black" ? book.filter((o) => !o.fun && o.colour === key) : book.filter((o) => o.id === key);
   return openings.flatMap((o) => o.lines.map((line) => ({ o, line })));
 }
-function hiddenLabel(key) { return key === "white" ? "All White openings" : key === "black" ? "All Black openings" : book.find((o) => o.id === key)?.name; }
+function hiddenLabel(key) {
+  if (key.includes("~")) return find(key.split("~")[1])[0]?.name + " · branch";
+  return key === "white" ? "All White openings" : key === "black" ? "All Black openings" : book.find((o) => o.id === key)?.name;
+}
 let lastHidden = null;
 
 // Learn shows each of your moves as an arrow. Practise is from memory: a wrong move is played, then taken back,
@@ -354,6 +444,7 @@ function practise(pool, mode, hiddenKey) {
         save(line.id, { runs: before.runs + 1, streak, last: Date.now(), seen: true });
       }
       if (hidden) lastHidden = line.id;
+      logRun();
       buzz(missed.size ? 0 : [15, 60, 15]);
     }
     const p = prog(line.id);
@@ -396,7 +487,7 @@ function practise(pool, mode, hiddenKey) {
     refresh: () => { if (mine(i) && !wrong) showStats(plies[i]); },
   };
   document.body.classList.add("focus");
-  const home = hidden && (hiddenKey === "white" || hiddenKey === "black") ? "#" : "#o/" + o.id;
+  const home = hidden && (hiddenKey === "white" || hiddenKey === "black") ? "#" : (hidden && hiddenKey.includes("~") ? "#t/" : "#o/") + o.id;
   content.replaceChildren(h("div", { class: "practice" },
     h("div", { class: "row" },
       h("a", { class: "btn slim", href: home, "aria-label": "Back" }, "‹"),

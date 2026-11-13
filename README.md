@@ -93,12 +93,12 @@ Stockfish judges *that* a move was worse and what was better, not *why* in human
 
 ## Mistakes app (phone)
 
-The `web` service is a small phone-first app for the engine analysis, in the same style as mealbot. Add it to your home screen from the browser's share menu. It has five tabs:
+The `web` service is a small phone-first app for the engine analysis, in the same style as mealbot. Add it to your home screen from the browser's share menu. It has five tabs, Openings first (it is the home page):
 
-- **Patterns:** accuracy, error rate and blunders, the bad moves you repeat from the same position, and where errors happen (game phase, clock, openings).
+- **Patterns** (`/patterns`): accuracy, error rate and blunders, the bad moves you repeat from the same position, and where errors happen (game phase, clock, openings).
 - **Review:** your recent mistakes and blunders, newest first.
 - **Drill:** a position you got wrong; find the move, then tap to see what you played and what the engine wanted. Positions you've misplayed more than once come first. The score is kept on the phone only.
-- **Openings:** practise the repertoire in `collector/openings.py` line by line. New lines start in Learn mode (each move shown as an arrow), then Practise is from memory. Hidden mode, per opening or across all your White or Black openings, doesn't say which line is coming, so you answer whatever the opponent plays. A line is learned after three clean runs and comes back for review after 2, 4, 8... days. Progress is kept on the phone only.
+- **Openings:** practise the repertoire in `collector/openings.py` line by line. New lines start in Learn mode (each move shown as an arrow), then Practise is from memory. Each opening also has a Tree view: your lines merged into one tree that splits where the opponent can choose, and any branch can be practised on its own in hidden mode. Hidden mode, per opening or across all your White or Black openings, doesn't say which line is coming, so you answer whatever the opponent plays. A line is learned after three clean runs and comes back for review after 2, 4, 8... days. Progress is kept on the phone only.
 - **Games:** recent games with our accuracy and Chess.com's, each opening a list of that game's errors.
 
 Every board shows your move as a red arrow and the engine's as a green one, and every position has an **Open in Lichess** button. Boards are drawn by the server or, where you move pieces, in the browser, so the app loads nothing from other sites. It connects as Grafana's read-only database role and can't change anything.

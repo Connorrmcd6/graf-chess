@@ -1,4 +1,4 @@
-"""Phone-first web app for the engine analysis: recurring mistakes, a review feed, a drill and recent games.
+"""Phone-first chess trainer: opening practice first, then a drill, recurring mistakes, a review feed and recent games.
 
 Read-only: it connects as Grafana's read-only database role and only queries ``dashboard`` views.
 Static boards are rendered server-side as SVG with python-chess; the boards you move on are drawn in the browser.
@@ -27,8 +27,8 @@ from collector import openings
 
 log = logging.getLogger(__name__)
 STATIC = Path(__file__).with_name("static")
-PAGES = {"/": "index.html", "/review": "review.html", "/drill": "drill.html", "/games": "games.html",
-         "/game": "game.html", "/openings": "openings.html", "/sw.js": "sw.js"}
+PAGES = {"/": "openings.html", "/openings": "openings.html", "/patterns": "index.html", "/review": "review.html",
+         "/drill": "drill.html", "/games": "games.html", "/game": "game.html", "/sw.js": "sw.js"}
 MODES = ("rapid", "blitz", "bullet", "daily")
 PAGE_SIZE = 20
 UCI = re.compile(r"^[a-h][1-8][a-h][1-8][qrbn]?$")

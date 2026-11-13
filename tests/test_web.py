@@ -87,7 +87,7 @@ def test_http_server_serves_pages_boards_and_json(app):
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{server.server_address[1]}"
     try:
-        for path in ("/", "/review", "/drill", "/games", "/game", "/static/app.js", "/static/manifest.json", "/sw.js"):
+        for path in ("/", "/openings", "/patterns", "/review", "/drill", "/games", "/game", "/static/app.js", "/static/manifest.json", "/sw.js"):
             with urlopen(base + path) as r:
                 assert r.status == 200 and r.headers["X-Frame-Options"] == "DENY"
                 assert "frame-ancestors 'none'" in r.headers["Content-Security-Policy"]

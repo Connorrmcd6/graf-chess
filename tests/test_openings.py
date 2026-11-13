@@ -77,3 +77,16 @@ def test_repertoire_changes_and_previews():
     assert book["caro"]["preview"] == chess.Board("rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").fen()
     for o in book.values():
         chess.Board(o["preview"])
+
+
+def test_one_move_of_yours_per_position():
+    """Black picks a defence on move one; after that the repertoire never has two answers to the same position."""
+    seen = {}
+    for o in openings.repertoire():
+        if o["fun"]:
+            continue
+        for ln in o["lines"]:
+            for index, p in enumerate(ln["plies"]):
+                if "key" in p and index > 1:
+                    first = seen.setdefault(p["key"], (p["san"], ln["id"]))
+                    assert first[0] == p["san"], f"{p['label']} in {ln['id']} but {first[0]} in {first[1]}"
