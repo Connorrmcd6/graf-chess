@@ -68,7 +68,9 @@ def test_london_meets_the_englund_and_the_icbm_wins_the_queen():
 
 def test_repertoire_changes_and_previews():
     book = {o["id"]: o for o in openings.repertoire()}
-    assert "grand-prix" not in book and "kid-flank" not in book
+    assert "kid-flank" not in book
+    replies = {o["lines"][0]["plies"][1]["san"] for o in book.values() if o["colour"] == "white" and not o["fun"]}
+    assert {"e5", "c5", "e6", "c6", "d5", "d6"} <= replies
     assert {"flank-english", "flank-reti"} <= {ln["id"] for ln in book["kid"]["lines"]}
     assert book["dutch"]["colour"] == "black" and all(ln["moves"].startswith("1.d4 f5") for ln in book["dutch"]["lines"])
     assert len(book["caro"]["lines"]) >= 8
