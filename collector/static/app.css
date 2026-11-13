@@ -420,3 +420,7 @@ body.focus .header, body.focus .chips { display: none; }
   border-radius: 12px; padding: 8px 12px; line-height: 1.4; margin-bottom: 6px; }
 .note b { color: var(--accent); }
 .note .tag { margin-left: 6px; height: 20px; font-size: .7rem; vertical-align: middle; }
+.option { align-items: flex-start; padding-top: 12px; padding-bottom: 12px; }
+.option .omove { padding-top: 1px; }
+.option .onote { display: block; margin-top: 4px; font-size: .84rem; line-height: 1.4; color: var(--muted); }
+.option .onote .tag { margin-left: 6px; height: 20px; font-size: .7rem; }

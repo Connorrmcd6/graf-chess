@@ -362,9 +362,11 @@ function explorer(colour, path) {
       const to = openingsOf(k);
       return h("a", { class: "list-row option", href: href([...ucis, k.ply.uci]) },
         h("span", { class: "omove " + (mine ? "you" : "them") }, k.ply.label),
-        h("span", { class: "grow ellipsis" }, to.length === 1 ? to[0].name : `${to.length} openings`),
-        h("span", { class: "small muted" }, `${k.items.length} line${k.items.length > 1 ? "s" : ""}`),
-        to.length === 1 ? progressTag(to[0]) : "");
+        h("span", { class: "grow", style: "min-width:0" },
+          h("span", { class: "row" }, h("span", { class: "grow ellipsis" }, to.length === 1 ? to[0].name : `${to.length} openings`),
+            h("span", { class: "small muted" }, `${k.items.length} line${k.items.length > 1 ? "s" : ""}`),
+            to.length === 1 ? progressTag(to[0]) : ""),
+          k.ply.note && h("span", { class: "onote" }, k.ply.note, k.ply.check ? h("span", { class: "tag warn" }, "worth checking") : "")));
     }));
     options.classList.toggle("hidden", !node.kids.length);
     backBtn.disabled = !ucis.length;
