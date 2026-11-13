@@ -414,3 +414,9 @@ body.focus .header, body.focus .chips { display: none; }
 .option .omove.you { color: var(--accent); }
 .fullmap summary { font-weight: 700; cursor: pointer; min-height: 32px; display: flex; align-items: center; }
 .fullmap[open] summary { margin-bottom: 8px; }
+
+/* move notes */
+.note { display: grid; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  border-radius: 12px; padding: 8px 12px; line-height: 1.4; margin-bottom: 6px; }
+.note b { color: var(--accent); }
+.note .tag { margin-left: 6px; height: 20px; font-size: .7rem; vertical-align: middle; }

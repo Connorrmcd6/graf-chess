@@ -325,6 +325,7 @@ function explorer(colour, path) {
   const board = tapBoard({ colour, onMove: (uci) => go(href([...ucis, uci])) });
   const crumbs = h("div", { class: "strip", "aria-label": "Moves" });
   const status = h("div", { class: "feedback" });
+  const note = h("div", { class: "note small hidden" });
   const options = h("div", { class: "list" });
   const optionsTitle = h("h3", { class: "section" });
   const backBtn = h("button", { class: "btn", onclick: () => go(href(ucis.slice(0, -1))) }, "‹ Back");
@@ -351,6 +352,9 @@ function explorer(colour, path) {
       h("a", { class: "btn slim", href: "#o/" + os[0].id }, "Open"));
     else status.replaceChildren(h("span", {}, h("b", {}, `${os.length} openings`), " still possible from here"));
     status.className = "feedback" + (ucis.length && os.length === 1 ? " good" : "");
+    note.classList.toggle("hidden", !node.ply?.note);
+    if (node.ply?.note) note.replaceChildren(h("b", {}, node.ply.label + " "), node.ply.note,
+      node.ply.check ? h("span", { class: "tag warn" }, "worth checking") : "");
 
     const mine = node.kids[0]?.ply.mover === colour;
     optionsTitle.textContent = !node.kids.length ? "End of your preparation" : mine ? "Your move" : "If they play";
@@ -377,7 +381,7 @@ function explorer(colour, path) {
       h("div", { class: "seg mode", role: "group", "aria-label": "Colour" },
         h("button", { "aria-pressed": String(colour === "white"), onclick: () => go("#map/white") }, "White"),
         h("button", { "aria-pressed": String(colour === "black"), onclick: () => go("#map/black") }, "Black"))),
-    board.el, crumbs, status,
+    board.el, crumbs, status, note,
     h("div", { class: "row" }, backBtn, practiseBtn),
     optionsTitle, options,
     h("details", { class: "card fullmap" }, h("summary", {}, "Full map"), mapView(colour)));
@@ -462,7 +466,16 @@ function practise(pool, mode, hiddenKey, start = 0) {
   const board = tapBoard({ colour, onMove });
   const strip = h("div", { class: "strip", "aria-label": "Moves" });
   const feedback = h("div", { class: "feedback", role: "status", "aria-live": "polite" });
-  const extra = h("div", { class: "extra small" });
+  const noteEl = h("div", { class: "note hidden" });
+  const statsEl = h("div");
+  const extra = h("div", { class: "extra small" }, noteEl, statsEl);
+  // Notes say why a move is played. From memory you only see them for moves already on the board.
+  function showNote(ks) {
+    const shown = ks.filter((k) => k >= 0 && plies[k]?.note);
+    noteEl.classList.toggle("hidden", !shown.length);
+    noteEl.replaceChildren(...shown.map((k) => h("div", {}, h("b", {}, plies[k].label + " "), plies[k].note,
+      plies[k].check ? h("span", { class: "tag warn" }, "worth checking") : "")));
+  }
   const bar = h("i");
   const title = h("b", {}, hidden ? "Hidden line" : line.name);
   const tool = (icon, label, onclick, key) => h("button", { class: "tool", onclick, title: `${label} (${key})`, html: TOOL_ICONS[icon] + `<span>${label}</span>` });
@@ -511,16 +524,19 @@ function practise(pool, mode, hiddenKey, start = 0) {
     hinted = false;
     if (hidden && i < plies.length && !mine(i)) use(pick(pool.filter(fits)));
     drawStrip();
-    extra.replaceChildren();
+    extra.replaceChildren(noteEl, statsEl);
+    statsEl.replaceChildren();
     if (i >= plies.length) return finish();
     tools();
     const ply = plies[i];
     if (!mine(i)) {
       say(h("span", { class: "muted" }, "Opponent is thinking…"));
+      showNote([i - 1]);
       board.set({ fen: fenAt(i), last: last(), check: check(), locked: true });
       timer = setTimeout(() => { i++; step(); }, i === 0 ? 600 : 500);
       return;
     }
+    showNote(learning ? [i - 1, i] : [plies[i - 1]?.note ? i - 1 : i - 2]);
     if (learning) {
       say(["Play ", h("b", {}, ply.label)], "hint");
       board.set({ fen: fenAt(i), legal: ply.legal, last: last(), check: check(), best: ply.uci });
@@ -534,13 +550,13 @@ function practise(pool, mode, hiddenKey, start = 0) {
 
   function showStats(ply) {
     const s = ply.key && stats.positions[ply.key];
-    if (!s) return extra.replaceChildren(h("span", { class: "muted" }, "You haven't reached this position in your analysed games."));
+    if (!s) return statsEl.replaceChildren(h("span", { class: "muted" }, "You haven't reached this position in your analysed games."));
     if (!learning && !hinted) {
       // From memory, so don't give the answer away: only say how often you've been here.
-      return extra.replaceChildren(h("span", { class: "muted" }, `You've reached this position in ${s.games} game${s.games > 1 ? "s" : ""}.`));
+      return statsEl.replaceChildren(h("span", { class: "muted" }, `You've reached this position in ${s.games} game${s.games > 1 ? "s" : ""}.`));
     }
     const colourOf = (san) => san === ply.san ? "var(--good)" : bookMoves[ply.key]?.has(san) ? "var(--text)" : "var(--bad)";
-    extra.replaceChildren(h("span", { class: "muted" }, `In your games here (${s.games}): `),
+    statsEl.replaceChildren(h("span", { class: "muted" }, `In your games here (${s.games}): `),
       ...s.moves.flatMap((m, k) => [k ? " · " : "", h("b", { style: "color:" + colourOf(m.san) }, m.san),
         ` ${m.games}×`, m.san !== ply.san && m.avg_loss ? ` (−${Math.round(m.avg_loss)} pts)` : ""]));
   }
@@ -577,6 +593,7 @@ function practise(pool, mode, hiddenKey, start = 0) {
     hinted = true;
     board.set({ fen: fenAt(i), legal: ply.legal, last: last(), check: check(), best: ply.uci });
     say(["Hint: play ", h("b", {}, ply.label)], "hint");
+    showNote([i]);
     drawStrip();
     tools();
     showStats(ply);
@@ -616,7 +633,8 @@ function practise(pool, mode, hiddenKey, start = 0) {
         h("a", { class: "btn primary grow", href: "#h/" + hiddenKey, id: "next", onclick: (e) => { e.preventDefault(); again(); } }, "Another ▶")]
       : [h("a", { class: "btn " + (learning ? "primary" : "") + " grow", href: "#l/" + line.id, onclick: (e) => { e.preventDefault(); go("#l/" + line.id); } }, learning ? "Practise it" : "Again"),
         h("a", { class: "btn " + (learning ? "" : "primary") + " grow", href: lineHref(pickNext(o.lines, line.id)), id: "next" }, "Next line ▶")];
-    extra.replaceChildren(h("div", { class: "done" },
+    showNote([plies.length - 1]);
+    extra.replaceChildren(noteEl, h("div", { class: "done" },
       !learning && dots(p.streak),
       h("div", { class: "row" }, ...buttons,
         h("a", { class: "btn slim", href: lichessUrl(line.end_fen, colour), target: "_blank", rel: "noopener", title: "Open in Lichess" }, "↗"))));

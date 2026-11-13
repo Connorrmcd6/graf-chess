@@ -90,3 +90,12 @@ def test_one_move_of_yours_per_position():
                 if "key" in p and index > 1:
                     first = seen.setdefault(p["key"], (p["san"], ln["id"]))
                     assert first[0] == p["san"], f"{p['label']} in {ln['id']} but {first[0]} in {first[1]}"
+
+
+def test_every_note_belongs_to_a_line():
+    paths = {" ".join(openings._sans(ln["moves"])[:k]) for o in openings.REPERTOIRE for ln in o["lines"]
+             for k in range(1, len(openings._sans(ln["moves"])) + 1)}
+    assert set(openings.NOTES) <= paths, set(openings.NOTES) - paths
+    assert openings.NOTES_TO_CHECK <= set(openings.NOTES)
+    london = next(o for o in openings.repertoire() if o["id"] == "london")
+    assert all(any("note" in p for p in ln["plies"] if p["mover"] == "white") for ln in london["lines"])

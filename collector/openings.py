@@ -174,6 +174,86 @@ REPERTOIRE = [
     ]},
 ]
 
+# Why each move is played, keyed by the moves up to and including it. Written by hand and checked against
+# Stockfish on the position; NOTES_TO_CHECK lists the ones worth a second opinion.
+NOTES = {
+    # London: the setup
+    "d4 d5 Bf4": "The London move: get the dark-squared bishop out before e3 locks it inside your pawns.",
+    "d4 d5 Bf4 Nf6 e3": "Supports d4 and opens a path for the light-squared bishop. Your pawns now form a solid wall on c3, d4 and e3.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3": "Natural development that also covers e5, the square your knight wants later.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5": "Black hits your centre. Next they often play ...Qb6 to attack b2.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3": "Completes the pyramid: d4 stays rock solid, and the queen can later defend b2 from b3 or c2.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2": "Keeps c3 supported and prepares Ne5 or e4. The knight on d2 can also come back to f3 if the other one moves.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Bd6": "Black offers to trade off your good bishop with ...Bxf4.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Bd6 Bg3": "Keep the bishop instead of trading. If Black takes with ...Bxg3, recapture hxg3 and your rook gets the open h-file.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Bd6 Bg3 O-O Bd3": "The bishop aims at h7, Black's castled king. Typical plans: Qe2 and castle, or Ne5 with f4 and a kingside attack.",
+    # London: early ...c5 and ...Qb6
+    "d4 d5 Bf4 c5": "The most testing reply: Black strikes at d4 straight away, and ...Qb6 against b2 is coming.",
+    "d4 d5 Bf4 c5 e3": "Back up d4 with a pawn so ...cxd4 can be met by exd4.",
+    "d4 d5 Bf4 c5 e3 Nc6 c3": "Same pyramid as the main line: d4 can't be won.",
+    "d4 d5 Bf4 c5 e3 Nc6 c3 Qb6": "Attacks b2. With your bishop gone from c1, nothing else defends it.",
+    "d4 d5 Bf4 c5 e3 Nc6 c3 Qb6 Qb3": "Defends b2 and offers a queen trade, which suits you.",
+    "d4 d5 Bf4 c5 e3 Nc6 c3 Qb6 Qb3 c4": "Black avoids the trade by hitting your queen.",
+    "d4 d5 Bf4 c5 e3 Nc6 c3 Qb6 Qb3 c4 Qc2": "The queen stays near b2 and eyes the h7 square along the b1-h7 diagonal.",
+    "d4 d5 Bf4 c5 e3 Nc6 c3 Qb6 Qb3 c4 Qc2 Nf6 Nd2": "Prepares e4 to break open the centre, and b3 to undermine Black's c4 pawn.",
+    "d4 d5 Bf4 c5 e3 Nc6 c3 Qb6 Qb3 c4 Qc2 Nf6 Nd2 Bg4 Ngf3": "Develops and finishes your setup. Stockfish prefers 8.b3 here, hitting the c4 pawn first.",
+    # London: symmetrical ...Bf5
+    "d4 d5 Bf4 Nf6 e3 Bf5": "Black copies you. The catch: with their bishop gone, b7 is weak.",
+    "d4 d5 Bf4 Nf6 e3 Bf5 c4": "Hits d5 and opens the way for Qb3 against b7.",
+    "d4 d5 Bf4 Nf6 e3 Bf5 c4 e6 Nc3": "More pressure on d5. Watch for ...Bb4 pinning this knight.",
+    "d4 d5 Bf4 Nf6 e3 Bf5 c4 e6 Nc3 Bb4": "The pin: Black's bishop holds your knight to the king.",
+    "d4 d5 Bf4 Nf6 e3 Bf5 c4 e6 Nc3 Bb4 Qb3": "Attacks b7 and the bishop on b4 together. Stockfish actually prefers 6.Nf3 or 6.Be2 here and rates this as slightly better for Black.",
+    "d4 d5 Bf4 Nf6 e3 Bf5 c4 e6 Nc3 Bb4 Qb3 Nc6 Nf3": "Develop and get ready to castle. Black's pin on c3 is the thing to deal with next, often with a3.",
+    # London vs a King's Indian setup
+    "d4 Nf6 Bf4 g6": "Black is going for a King's Indian setup with the bishop on g7.",
+    "d4 Nf6 Bf4 g6 e3 Bg7 Nf3 O-O Be2": "A quiet, safe square. Your bishop on f4 already covers the important diagonal.",
+    "d4 Nf6 Bf4 g6 e3 Bg7 Nf3 O-O Be2 d6 h3": "Gives your bishop a retreat on h2, so ...Nh5 can't trade it off, and stops ...Bg4 and ...Ng4.",
+    "d4 Nf6 Bf4 g6 e3 Bg7 Nf3 O-O Be2 d6 h3 c5 O-O": "King to safety before the centre opens.",
+    "d4 Nf6 Bf4 g6 e3 Bg7 Nf3 O-O Be2 d6 h3 c5 O-O Nc6 c3": "Holds d4 against ...c5 and the g7 bishop. Stockfish also likes the sharper 8.d5, chasing the knight.",
+    # London vs a Caro-Kann setup
+    "d4 d5 Bf4 c6 e3 Bf5": "Black's bishop leaves, and again b7 becomes a target.",
+    "d4 d5 Bf4 c6 e3 Bf5 c4": "Strike at d5 and prepare Qb3, hitting b7.",
+    "d4 d5 Bf4 c6 e3 Bf5 c4 e6 Nc3 Nf6 Qb3": "Attacks b7. Black has to defend it or offer a trade.",
+    "d4 d5 Bf4 c6 e3 Bf5 c4 e6 Nc3 Nf6 Qb3 Qb6 c5": "The key trick: the pawn attacks Black's queen, so Black must trade on b3 and your pawns grab space on the queenside.",
+    "d4 d5 Bf4 c6 e3 Bf5 c4 e6 Nc3 Nf6 Qb3 Qb6 c5 Qxb3 axb3": "Take towards the centre. The open a-file is ready for your rook, and Stockfish rates you about +1.",
+    # London: the Greek gift
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7": "More passive than ...Bd6: this bishop doesn't challenge yours, so you keep it on f4.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3": "Aim the bishop at h7, Black's weak spot once they castle.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5": "A strong outpost backed by d4. From here the knight supports a kingside attack.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3": "Reinforce e5, which Black's bishop now attacks. This knight can also jump to g5.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3 Nh5": "A blunder: chasing your bishop pulls the knight away from f6, the piece that defends h7.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3 Nh5 Bxh7+": "The Greek gift. It works because the f6 knight has left, your knight can check on g5, and your queen can reach h5.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3 Nh5 Bxh7+ Kxh7 Ng5+": "Knight check, and now your queen has a clear road to h5.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3 Nh5 Bxh7+ Kxh7 Ng5+ Qxg5": "Black's best: giving up the queen for a knight. Moving the king instead gets mated.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3 Nh5 Bxh7+ Kxh7 Ng5+ Qxg5 Bxg5": "You've won the queen for a bishop and knight. Stockfish rates this about +4.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3 Nh5 Bxh7+ Kxh7 Ng5+ Kh8 Qxh5+": "Takes the knight with check. The h-file is now a highway to Black's king.",
+    "d4 d5 Bf4 Nf6 e3 e6 Nf3 c5 c3 Nc6 Nbd2 Be7 Bd3 O-O Ne5 Bd6 Ndf3 Nh5 Bxh7+ Kxh7 Ng5+ Kh8 Qxh5+ Kg8 Qh7#": "Mate: the knight on g5 guards h7, and Black's own rook blocks f8.",
+    # London vs the Englund Gambit
+    "d4 e5": "The Englund Gambit: Black gives up a pawn for quick development and tricks. It's objectively bad, but full of traps.",
+    "d4 e5 dxe5": "Take the pawn. Your job now is to develop sensibly and not fall for a trap.",
+    "d4 e5 dxe5 Nc6 Nf3": "Defends the extra pawn on e5 and develops.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7": "Black piles up on e5 and sets the famous trap.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4": "Defends e5 a second time. Now be careful about ...Qb4+.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+": "Check, and the queen also attacks b2.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2": "Block with the bishop, which attacks the queen.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2 Qxb2": "Black grabs b2 and threatens ...Qxa1.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2 Qxb2 Nc3": "The safe move. Never play 6.Bc3?? here: ...Bb4! wins, because 7.Bxb4 Nxb4 and 7.Qd2 Bxc3 8.Qxc3 Qc1# both lose for you. That is the Englund trap.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2 Qxb2 Nc3 Bb4 Rb1": "Hunt the queen. It's running out of squares.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2 Qxb2 Nc3 Bb4 Rb1 Qa3 Rb3": "Chase it again and attack the bishop on b4.",
+    "d4 e5 dxe5 Nc6 Nf3 Qe7 Bf4 Qb4+ Bd2 Qxb2 Nc3 Bb4 Rb1 Qa3 Rb3 Qa5 e4": "Grab the centre. You're about +2: an extra pawn and much better development.",
+    "d4 e5 dxe5 d6 exd6": "Just take: Black is gambiting a second pawn.",
+    "d4 e5 dxe5 d6 exd6 Bxd6 Nf3 Nf6 Bg5": "Pins the knight and develops. Stockfish prefers 5.Nc3, but either keeps you comfortably better.",
+    "d4 e5 dxe5 d6 exd6 Bxd6 Nf3 Nf6 Bg5 Nc6 e3": "Solid: open the way for your other bishop and castle. You're a pawn up.",
+    "d4 e5 dxe5 f6 exf6": "Take again. Black's ...f6 weakens their own king.",
+    "d4 e5 dxe5 f6 exf6 Nxf6 Nf3 d5 Bf4": "Back to London-style development, but now with an extra pawn.",
+    "d4 e5 dxe5 f6 exf6 Nxf6 Nf3 d5 Bf4 Bd6 e3": "Don't fear the trade on f4: after ...Bxf4 exf4 you're still a healthy pawn up.",
+}
+NOTES_TO_CHECK = {
+    "d4 d5 Bf4 Nf6 e3 Bf5 c4 e6 Nc3 Bb4 Qb3",
+    "d4 d5 Bf4 c5 e3 Nc6 c3 Qb6 Qb3 c4 Qc2 Nf6 Nd2 Bg4 Ngf3",
+}
+
+
 MOVE_NUMBER = re.compile(r"^\d+\.+")
 
 
@@ -193,6 +273,10 @@ def compile_line(opening: dict, line: dict) -> dict:
         mover = "white" if board.turn == chess.WHITE else "black"
         ply = {"san": board.san(move), "uci": move.uci(), "fen": board.fen(), "mover": mover,
                "label": f"{board.fullmove_number}{'.' if mover == 'white' else '…'}{board.san(move)}"}
+        path = " ".join(_sans(line["moves"])[:index + 1])
+        if path in NOTES:
+            ply["note"] = NOTES[path]
+            ply["check"] = path in NOTES_TO_CHECK
         if mover == opening["colour"]:
             ply["legal"] = {m.uci(): board.san(m) for m in board.legal_moves}
             if index >= opening["tabiya"]:
