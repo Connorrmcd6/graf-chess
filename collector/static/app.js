@@ -145,7 +145,8 @@ function boardSheet(p) {
 // A board you move on by tapping a piece then its square, or by dragging it there. legal: {uci: san}.
 // Drawn in the browser so pieces slide between positions. Promotions become queens.
 // set({fen, legal, you, best, play, last, check, locked}): you/best are red/green arrows, play is a move made
-// on the board first (a wrong move, to take back), last highlights the previous move, check the king in check.
+// on the board first (a wrong move, to take back), last highlights the previous move, check the king in check,
+// arrows adds [uci, "green" | "grey"] pairs.
 const FILES = "abcdefgh";
 const PIECE_NAME = { p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king" };
 function pieceAt(fen) {
@@ -352,7 +353,7 @@ function tapBoard({ colour, onMove }) {
   });
   grid.addEventListener("pointercancel", () => endDrag(true));
 
-  function set({ fen, legal: moves, you = "", best = "", play: played = "", last = "", check = false, locked: lock = false }) {
+  function set({ fen, legal: moves, you = "", best = "", play: played = "", last = "", check = false, arrows: extra = [], locked: lock = false }) {
     if (fen) {
       const first = !Object.keys(els).length;
       at = pieceAt(fen);
@@ -363,7 +364,7 @@ function tapBoard({ colour, onMove }) {
       const king = check && Object.keys(at).find((sq) => at[sq] === (turn === "w" ? "K" : "k"));
       marks.replaceChildren(...(lastMove ? [square(lastMove.slice(0, 2), "last"), square(lastMove.slice(2, 4), "last")] : []),
         king ? square(king, "check") : "");
-      drawArrows([[you, "red"], [best !== you ? best : "", "green"]]);
+      drawArrows([...extra, [you, "red"], [best !== you ? best : "", "green"]]);
       labels();
     }
     if (moves) legal = moves;

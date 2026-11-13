@@ -18,6 +18,7 @@
 <script src="/static/app.js"></script>
 <script>
 // Views live in the hash so the browser back button works: "" (openings), "#o/<opening>", "#l/<line>" (practise), "#learn/<line>".
+let exploring = null;
 let book = null, stats = { positions: {}, lines: {}, openings: {} }, practising = null, bookMoves = {};
 const LEARNED = 3;  // clean runs in a row
 const DAY = 864e5;
@@ -87,7 +88,9 @@ function allLines() { return book.filter((o) => !o.fun).flatMap((o) => o.lines);
 function render() {
   if (!book) return;
   const content = document.getElementById("content");
-  const [kind, id] = location.hash.slice(1).split("/");
+  const [kind, id, path] = location.hash.slice(1).split("/");
+  if (kind === "map" && exploring?.colour === id) return exploring.update(path ? path.split("_") : []);
+  exploring = null;
   practising?.stop();
   practising = null;
   document.body.classList.remove("focus");
@@ -96,7 +99,8 @@ function render() {
     const [o, line] = find(id);
     return practise([{ o, line }], kind === "learn" ? "learn" : "practise");
   }
-  if (kind === "h" && hiddenPool(id).length) return practise(hiddenPool(id), "hidden", id);
+  if (kind === "h" && hiddenPool(id).length) return practise(hiddenPool(id), "hidden", id, hiddenStart(id));
+  if (kind === "map" && (id === "white" || id === "black")) return explorer(id, path ? path.split("_") : []);
   const opening = (kind === "o" || kind === "t") && book.find((o) => o.id === id);
   content.replaceChildren(...(opening ? linesView(opening, kind === "t") : openingsView()).filter((c) => c != null));
 }
@@ -174,6 +178,7 @@ function openingsView() {
       h("div", { class: "grow" }, h("b", {}, "Drill your mistakes"),
         h("div", { class: "small muted" }, "Find the move you missed in your own games")),
       h("span", { class: "muted chev", "aria-hidden": "true" }, "›"))),
+    mapCard(),
     ...group("As White", book.filter((o) => !o.fun && o.colour === "white")),
     ...group("As Black", book.filter((o) => !o.fun && o.colour === "black")),
     ...group("Just for fun", book.filter((o) => o.fun)),
@@ -248,6 +253,137 @@ function treeView(o) {
     root.kids.map(branch));
 }
 
+// Every opening for a colour merged into one tree of moves.
+function repTree(colour) {
+  const root = { kids: [], items: [], depth: 0 };
+  for (const o of book.filter((x) => !x.fun && x.colour === colour)) {
+    for (const line of o.lines) {
+      let node = root;
+      root.items.push({ o, line });
+      line.plies.forEach((ply, k) => {
+        let next = node.kids.find((c) => c.ply.uci === ply.uci);
+        if (!next) node.kids.push(next = { ply, kids: [], items: [], depth: k + 1 });
+        next.items.push({ o, line });
+        node = next;
+      });
+    }
+  }
+  return root;
+}
+function repNode(colour, path) {
+  const nodes = [repTree(colour)];
+  for (const uci of path) {
+    const next = nodes[nodes.length - 1].kids.find((c) => c.ply.uci === uci);
+    if (!next) break;
+    nodes.push(next);
+  }
+  return nodes;
+}
+const openingsOf = (n) => [...new Set(n.items.map((i) => i.o))];
+const progressTag = (o) => {
+  const c = counts(o.lines);
+  return h("span", { class: "tag" + (c.learned + c.due === o.lines.length ? " good" : "") }, `${c.learned + c.due}/${o.lines.length}`);
+};
+
+// The text version: cut off where the moves so far only fit one opening.
+function mapView(colour) {
+  const root = repTree(colour);
+  const label = (n) => (n.kids[0]?.ply.mover === colour ? "You choose" : "If they play");
+  function branch(node) {
+    const chain = [node];
+    let last = node;
+    while (openingsOf(last).length > 1 && last.kids.length === 1) chain.push(last = last.kids[0]);
+    const moves = h("span", { class: "mmoves" }, ...movesText(chain.map((n) => n.ply), colour));
+    const os = openingsOf(last);
+    if (os.length === 1) {
+      const o = os[0];
+      const then = last.ply.mover !== colour && last.items[0].line.plies.slice(last.depth).find((p) => p.mover === colour);
+      return h("a", { class: "mrow leaf", href: "#o/" + o.id }, moves, h("span", { class: "marrow", "aria-hidden": "true" }, "→"),
+        h("span", { class: "grow mname" }, h("b", {}, o.name), then ? h("span", { class: "small muted" }, ` · play ${then.label}`) : ""),
+        progressTag(o));
+    }
+    return h("div", { class: "mnode" }, h("div", { class: "mrow" }, moves),
+      h("div", { class: "mkids" }, h("div", { class: "mlabel" }, label(last)), last.kids.map(branch)));
+  }
+  return h("div", { class: "map" }, h("div", { class: "mkids top" }, h("div", { class: "mlabel" }, label(root)), root.kids.map(branch)));
+}
+
+function mapCard() {
+  return h("div", { class: "card explore-card" },
+    h("div", {}, h("h2", {}, "Repertoire explorer"),
+      h("div", { class: "small muted" }, "Step through your openings on a board and see where each move leads.")),
+    h("div", { class: "row" },
+      h("a", { class: "btn grow", href: "#map/white" }, "♔ As White"),
+      h("a", { class: "btn grow", href: "#map/black" }, "♚ As Black")));
+}
+
+// A board you walk through your repertoire on: arrows for every move you have prepared, rows saying where each leads.
+function explorer(colour, path) {
+  const content = document.getElementById("content");
+  const href = (list) => `#map/${colour}` + (list.length ? "/" + list.join("_") : "");
+  let ucis = [];
+  const board = tapBoard({ colour, onMove: (uci) => go(href([...ucis, uci])) });
+  const crumbs = h("div", { class: "strip", "aria-label": "Moves" });
+  const status = h("div", { class: "feedback" });
+  const options = h("div", { class: "list" });
+  const optionsTitle = h("h3", { class: "section" });
+  const backBtn = h("button", { class: "btn", onclick: () => go(href(ucis.slice(0, -1))) }, "‹ Back");
+  const practiseBtn = h("a", { class: "btn primary grow" }, "Practise from here");
+
+  function update(list) {
+    const nodes = repNode(colour, list), node = nodes[nodes.length - 1];
+    ucis = nodes.slice(1).map((n) => n.ply.uci);
+    const line = node.items[0].line;
+    const fen = node.depth < line.plies.length ? line.plies[node.depth].fen : line.end_fen;
+    board.set({ fen, legal: Object.fromEntries(node.kids.map((k) => [k.ply.uci, k.ply.san])), last: node.ply?.uci || "",
+      check: /[+#]/.test(node.ply?.san || ""), arrows: node.kids.map((k) => [k.ply.uci, k.ply.mover === colour ? "green" : "grey"]) });
+
+    crumbs.replaceChildren(h("button", { class: "m" + (ucis.length ? "" : " cur"), onclick: () => go(href([])) }, "Start"),
+      ...nodes.slice(1).flatMap((n, k) => [
+        n.ply.mover === "white" || k === 0 ? h("span", { class: "n" }, n.ply.label.match(/^\d+\.*…?/)[0]) : "",
+        h("button", { class: "m" + (k === ucis.length - 1 ? " cur" : "") + (n.ply.mover === colour ? " you" : ""),
+          onclick: () => go(href(ucis.slice(0, k + 1))) }, n.ply.san)]));
+    crumbs.scrollLeft = crumbs.scrollWidth;
+
+    const os = openingsOf(node);
+    if (!ucis.length) status.replaceChildren(h("span", {}, "Tap a move on the board or below. ", h("span", { class: "muted" }, "Green arrows are your moves, grey ones your opponent's.")));
+    else if (os.length === 1) status.replaceChildren(h("span", { class: "grow" }, "You're in the ", h("b", {}, os[0].name)),
+      h("a", { class: "btn slim", href: "#o/" + os[0].id }, "Open"));
+    else status.replaceChildren(h("span", {}, h("b", {}, `${os.length} openings`), " still possible from here"));
+    status.className = "feedback" + (ucis.length && os.length === 1 ? " good" : "");
+
+    const mine = node.kids[0]?.ply.mover === colour;
+    optionsTitle.textContent = !node.kids.length ? "End of your preparation" : mine ? "Your move" : "If they play";
+    options.replaceChildren(...node.kids.map((k) => {
+      const to = openingsOf(k);
+      return h("a", { class: "list-row option", href: href([...ucis, k.ply.uci]) },
+        h("span", { class: "omove " + (mine ? "you" : "them") }, k.ply.label),
+        h("span", { class: "grow ellipsis" }, to.length === 1 ? to[0].name : `${to.length} openings`),
+        h("span", { class: "small muted" }, `${k.items.length} line${k.items.length > 1 ? "s" : ""}`),
+        to.length === 1 ? progressTag(to[0]) : "");
+    }));
+    options.classList.toggle("hidden", !node.kids.length);
+    backBtn.disabled = !ucis.length;
+    practiseBtn.href = "#h/map-" + colour + (ucis.length ? "-" + ucis.join("_") : "");
+    practiseBtn.textContent = `Practise from here · ${node.items.length}`;
+    practiseBtn.title = `${node.items.length} lines, hidden`;
+  }
+
+  exploring = { colour, update };
+  document.body.classList.add("focus");
+  content.replaceChildren(
+    h("div", { class: "row" }, h("a", { class: "btn slim", href: "#", "aria-label": "Back to openings" }, "‹"),
+      h("h2", { class: "grow" }, "Explorer"),
+      h("div", { class: "seg mode", role: "group", "aria-label": "Colour" },
+        h("button", { "aria-pressed": String(colour === "white"), onclick: () => go("#map/white") }, "White"),
+        h("button", { "aria-pressed": String(colour === "black"), onclick: () => go("#map/black") }, "Black"))),
+    board.el, crumbs, status,
+    h("div", { class: "row" }, backBtn, practiseBtn),
+    optionsTitle, options,
+    h("details", { class: "card fullmap" }, h("summary", {}, "Full map"), mapView(colour)));
+  update(path);
+}
+
 function branchSheet(o, node) {
   const line = node.via, after = node.depth < line.plies.length ? line.plies[node.depth].fen : line.end_fen;
   const key = `${o.id}~${line.id}~${node.depth}`;
@@ -269,6 +405,11 @@ const buzz = (pattern) => navigator.vibrate?.(pattern);
 
 // The lines a hidden run can play: one opening, or every opening for a colour.
 function hiddenPool(key) {
+  if (key.startsWith("map-")) {
+    const [, colour, path] = key.split("-");
+    const nodes = repNode(colour, path ? path.split("_") : []);
+    return nodes[nodes.length - 1].items;
+  }
   if (key.includes("~")) {
     const [, lineId, depth] = key.split("~"), [o, line] = find(lineId);
     if (!o) return [];
@@ -278,7 +419,17 @@ function hiddenPool(key) {
   const openings = key === "white" || key === "black" ? book.filter((o) => !o.fun && o.colour === key) : book.filter((o) => o.id === key);
   return openings.flatMap((o) => o.lines.map((line) => ({ o, line })));
 }
+// Runs from the explorer or a tree branch start at that position; the moves before it are already played.
+function hiddenStart(key) {
+  if (key.startsWith("map-")) return (key.split("-")[2] || "").split("_").filter(Boolean).length;
+  return key.includes("~") ? Number(key.split("~")[2]) : 0;
+}
 function hiddenLabel(key) {
+  if (key.startsWith("map-")) {
+    const [, colour, path] = key.split("-");
+    const plies = repNode(colour, path ? path.split("_") : []).slice(1).map((n) => n.ply);
+    return `${colour === "white" ? "White" : "Black"} repertoire` + (plies.length ? " · after " + plies.map((p, k) => p.mover === "white" || k === 0 ? p.label : p.san).join(" ") : "");
+  }
   if (key.includes("~")) return find(key.split("~")[1])[0]?.name + " · branch";
   return key === "white" ? "All White openings" : key === "black" ? "All Black openings" : book.find((o) => o.id === key)?.name;
 }
@@ -288,7 +439,7 @@ let lastHidden = null;
 // and a second miss on the same move shows the hint. Back steps to your previous move.
 // Hidden doesn't say which line: at each opponent move it picks among the lines that fit the moves so far
 // (favouring ones due or being learned), and any repertoire move that fits is accepted.
-function practise(pool, mode, hiddenKey) {
+function practise(pool, mode, hiddenKey, start = 0) {
   const learning = mode === "learn", hidden = mode === "hidden";
   const content = document.getElementById("content");
   let o, line, plies;
@@ -300,10 +451,12 @@ function practise(pool, mode, hiddenKey) {
   }
   const fits = (e) => e.line.plies.length > i && plies.slice(0, i).every((p, k) => e.line.plies[k].uci === p.uci);
   let i = 0, wrong = null, timer = null, recorded = false, hinted = false;
+  const from = () => Math.min(start, plies.length);
   use(hidden ? pick(pool) : pool[0]);
   const colour = o.colour;
   const fenAt = (k) => (k < plies.length ? plies[k].fen : line.end_fen);
   const mine = (k) => k < plies.length && plies[k].mover === colour;
+  i = from();
   const missed = new Set();  // your plies with a wrong move or a hint, counted once each
   const tries = {};
   const board = tapBoard({ colour, onMove });
@@ -347,8 +500,8 @@ function practise(pool, mode, hiddenKey) {
 
   function tools() {
     let prev = i - 1;
-    while (prev >= 0 && !mine(prev)) prev--;
-    backBtn.disabled = !wrong && prev < 0;
+    while (prev >= from() && !mine(prev)) prev--;
+    backBtn.disabled = !wrong && prev < from();
     hintBtn.disabled = learning || !!wrong || !mine(i) || hinted;
   }
 
@@ -402,7 +555,7 @@ function practise(pool, mode, hiddenKey) {
     wrong = move;
     buzz(60);
     board.set({ fen: fenAt(i), play: move, locked: true });
-    say(["✕ ", h("b", {}, ply.legal[move]), learning ? " isn't it. Follow the arrow." : hidden ? (hiddenKey === colour ? " isn't in your repertoire." : " isn't in this opening.") : " isn't the line."], "bad");
+    say(["✕ ", h("b", {}, ply.legal[move]), learning ? " isn't it. Follow the arrow." : hidden ? (hiddenKey === colour || hiddenKey.startsWith("map-") ? " isn't in your repertoire." : " isn't in this opening.") : " isn't the line."], "bad");
     drawStrip();
     tools();
     timer = setTimeout(step, 900);
@@ -411,8 +564,8 @@ function practise(pool, mode, hiddenKey) {
   function back() {
     if (wrong) return step();
     let prev = i - 1;
-    while (prev >= 0 && !mine(prev)) prev--;
-    if (prev < 0) return;
+    while (prev >= from() && !mine(prev)) prev--;
+    if (prev < from()) return;
     i = prev;
     step();
   }
@@ -487,7 +640,9 @@ function practise(pool, mode, hiddenKey) {
     refresh: () => { if (mine(i) && !wrong) showStats(plies[i]); },
   };
   document.body.classList.add("focus");
-  const home = hidden && (hiddenKey === "white" || hiddenKey === "black") ? "#" : (hidden && hiddenKey.includes("~") ? "#t/" : "#o/") + o.id;
+  const home = !hidden ? "#o/" + o.id : hiddenKey === "white" || hiddenKey === "black" ? "#"
+    : hiddenKey.startsWith("map-") ? "#map/" + hiddenKey.split("-").slice(1, 3).filter(Boolean).join("/")
+    : (hiddenKey.includes("~") ? "#t/" : "#o/") + o.id;
   content.replaceChildren(h("div", { class: "practice" },
     h("div", { class: "row" },
       h("a", { class: "btn slim", href: home, "aria-label": "Back" }, "‹"),

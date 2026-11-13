@@ -385,3 +385,32 @@ body.focus .header, body.focus .chips { display: none; }
 .tleaf { display: flex; align-items: center; gap: 8px; text-decoration: none; font-size: .88rem; font-weight: 600; padding: 2px 4px 2px 10px; }
 .sheet .line .you { color: var(--accent); font-weight: 700; }
 .sheet .line span + span { margin-left: 6px; }
+
+/* repertoire map */
+.card.map { display: grid; gap: 8px; }
+.map .mkids { display: grid; gap: 4px; margin-left: 8px; padding-left: 10px; border-left: 2px solid var(--line); }
+.map .mkids.top { margin-left: 0; padding-left: 0; border-left: 0; margin-top: 4px; }
+.map .mlabel { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: 4px; }
+.map .mnode { display: grid; gap: 2px; }
+.map .mrow { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 8px; border-radius: 10px; text-decoration: none; }
+.map .mrow.leaf { background: var(--surface-2); }
+.map .mrow.leaf:active { transform: scale(.99); }
+.map .mmoves { flex: none; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; display: inline-flex; gap: 6px; }
+.map .mmoves .you { color: var(--accent); font-weight: 700; }
+.map .mmoves .them { font-weight: 600; }
+.map .marrow { color: var(--muted); }
+.map .mname { font-size: .9rem; line-height: 1.25; }
+
+/* repertoire explorer */
+.drill-board .arrow.grey line { stroke: #5b5348; } .drill-board .arrow.grey polygon { fill: #5b5348; }
+.drill-board .arrow.grey { opacity: .45; }
+.explore-card { display: grid; gap: 12px; }
+#content > .drill-board { max-width: min(520px, max(260px, calc(100svh - 420px))); }
+.strip button.m { border: 0; background: transparent; font: inherit; font-weight: 600; padding: 4px 8px; border-radius: 8px; }
+.strip button.m.you { color: var(--accent); }
+.strip button.m.cur { background: var(--surface-2); box-shadow: inset 0 -2px 0 var(--accent); }
+.option { min-height: 52px; }
+.option .omove { flex: none; min-width: 64px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+.option .omove.you { color: var(--accent); }
+.fullmap summary { font-weight: 700; cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.fullmap[open] summary { margin-bottom: 8px; }
