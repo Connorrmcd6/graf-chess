@@ -43,11 +43,15 @@ def test_stats_find_your_usual_slip():
         {"position_key": first["key"], "game_id": "g1", "san": "d6", "win_loss": 0},
         {"position_key": first["key"], "game_id": "g2", "san": "e5", "win_loss": 3},
         {"position_key": first["key"], "game_id": "g3", "san": "e5", "win_loss": 5},
+        {"position_key": first["key"], "game_id": "g4", "san": "c6", "win_loss": 0},
+        {"position_key": first["key"], "game_id": "g5", "san": "c6", "win_loss": 0},
+        {"position_key": first["key"], "game_id": "g6", "san": "c6", "win_loss": 0},
         {"position_key": second["key"], "game_id": "g1", "san": "Nf6", "win_loss": 1},
     ]}
     s = openings.stats(lambda colour, keys: [r for r in rows.get(colour, []) if r["position_key"] in keys])
-    assert s["positions"][first["key"]]["moves"][0] == {"san": "e5", "games": 2, "avg_loss": 4.0}
+    assert {"san": "e5", "games": 2, "avg_loss": 4.0} in s["positions"][first["key"]]["moves"]
     # 1...d6 and 2...Nf6 are on every Pirc line, so slips there belong to the opening, not a line.
+    # 1...c6 is the Caro-Kann, also your repertoire, so it is never a Pirc slip however often you play it.
     assert s["openings"]["pirc"] == {"games": 1, "slip": {"label": "1…d6", "book": "d6", "san": "e5", "times": 2}}
     assert s["openings"]["london"] == {"games": 0, "slip": None}
     assert s["lines"]["pirc-austrian"] == {"games": 0, "deepest": "2…Nf6", "slip": None}
@@ -60,3 +64,14 @@ def test_london_meets_the_englund_and_the_icbm_wins_the_queen():
     icbm = next(ln for ln in book["fun"]["lines"] if ln["id"] == "fun-icbm")
     board = chess.Board(icbm["end_fen"])
     assert not board.pieces(chess.QUEEN, chess.BLACK) and board.pieces(chess.QUEEN, chess.WHITE)
+
+
+def test_repertoire_changes_and_previews():
+    book = {o["id"]: o for o in openings.repertoire()}
+    assert "grand-prix" not in book and "kid-flank" not in book
+    assert {"flank-english", "flank-reti"} <= {ln["id"] for ln in book["kid"]["lines"]}
+    assert book["dutch"]["colour"] == "black" and all(ln["moves"].startswith("1.d4 f5") for ln in book["dutch"]["lines"])
+    assert len(book["caro"]["lines"]) >= 8
+    assert book["caro"]["preview"] == chess.Board("rnbqkbnr/pp1ppppp/2p5/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").fen()
+    for o in book.values():
+        chess.Board(o["preview"])

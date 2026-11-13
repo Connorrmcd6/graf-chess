@@ -1,7 +1,7 @@
 """Phone-first web app for the engine analysis: recurring mistakes, a review feed, a drill and recent games.
 
 Read-only: it connects as Grafana's read-only database role and only queries ``dashboard`` views.
-Boards are rendered server-side as SVG with python-chess, so the pages need no chess JavaScript.
+Static boards are rendered server-side as SVG with python-chess; the boards you move on are drawn in the browser.
 """
 from __future__ import annotations
 

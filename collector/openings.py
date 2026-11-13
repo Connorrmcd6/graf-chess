@@ -3,6 +3,7 @@
 Edit ``REPERTOIRE`` to change what you practise. Each line is written as ordinary move text from the
 starting position. ``tabiya`` is how many plies are common to every line before your own choices begin:
 the stats only count positions from there on, so the start position (reached in every game) never counts.
+``preview`` is how many plies of the first line the opening's thumbnail shows (default: the moves every line shares).
 Lines are replayed with python-chess on import, so a typo fails loudly here and in the tests.
 """
 from __future__ import annotations
@@ -15,7 +16,7 @@ import chess
 from collector.analysis import position_key
 
 REPERTOIRE = [
-    {"id": "london", "name": "London System", "colour": "white", "tabiya": 2, "lines": [
+    {"id": "london", "name": "London System", "colour": "white", "tabiya": 2, "preview": 3, "lines": [
         {"id": "london-main", "name": "Main line vs …d5 and …c5",
          "moves": "1.d4 d5 2.Bf4 Nf6 3.e3 e6 4.Nf3 c5 5.c3 Nc6 6.Nbd2 Bd6 7.Bg3 O-O 8.Bd3"},
         {"id": "london-qb6", "name": "Early …c5 and …Qb6",
@@ -41,7 +42,7 @@ REPERTOIRE = [
         {"id": "vienna-dracula", "name": "Frankenstein–Dracula",
          "moves": "1.e4 e5 2.Nc3 Nf6 3.Bc4 Nxe4 4.Qh5 Nd6 5.Bb3 Nc6 6.Nb5 g6 7.Qf3 f5 8.Qd5 Qe7 9.Nxc7+ Kd8 10.Nxa8"},
     ]},
-    {"id": "vienna-gambit", "name": "Vienna Gambit", "colour": "white", "tabiya": 2, "lines": [
+    {"id": "vienna-gambit", "name": "Vienna Gambit", "colour": "white", "tabiya": 2, "preview": 5, "lines": [
         {"id": "gambit-exf4", "name": "Accepted: 3…exf4 4.e5",
          "moves": "1.e4 e5 2.Nc3 Nf6 3.f4 exf4 4.e5 Ng8 5.Nf3 d6 6.d4 dxe5 7.Qe2 Be7 8.dxe5"},
         {"id": "gambit-nc6", "name": "Accepted: 2…Nc6 3.f4 exf4",
@@ -55,15 +56,7 @@ REPERTOIRE = [
         {"id": "gambit-declined-bc5", "name": "Declined: 2…Nc6 3.f4 Bc5",
          "moves": "1.e4 e5 2.Nc3 Nc6 3.f4 Bc5 4.Nf3 d6 5.Bc4 Nf6 6.d3"},
     ]},
-    {"id": "grand-prix", "name": "Grand Prix Attack", "colour": "white", "tabiya": 2, "lines": [
-        {"id": "gp-g6", "name": "2…Nc6 3.f4 g6",
-         "moves": "1.e4 c5 2.Nc3 Nc6 3.f4 g6 4.Nf3 Bg7 5.Bb5 Nd4 6.O-O Nxb5 7.Nxb5 d6 8.d3"},
-        {"id": "gp-e6", "name": "2…Nc6 3.f4 e6",
-         "moves": "1.e4 c5 2.Nc3 Nc6 3.f4 e6 4.Nf3 d5 5.Bb5 Nf6 6.Bxc6+ bxc6 7.d3"},
-        {"id": "gp-d6", "name": "2…d6 3.f4",
-         "moves": "1.e4 c5 2.Nc3 d6 3.f4 Nc6 4.Nf3 g6 5.Bb5 Bd7 6.O-O Bg7 7.d3"},
-    ]},
-    {"id": "kid", "name": "King's Indian Defence", "colour": "black", "tabiya": 1, "lines": [
+    {"id": "kid", "name": "King's Indian Defence", "colour": "black", "tabiya": 1, "preview": 6, "lines": [
         {"id": "kid-classical", "name": "Classical",
          "moves": "1.d4 Nf6 2.c4 g6 3.Nc3 Bg7 4.e4 d6 5.Nf3 O-O 6.Be2 e5 7.O-O Nc6 8.d5 Ne7 9.Ne1 Nd7 10.f3 f5"},
         {"id": "kid-samisch", "name": "Sämisch",
@@ -76,6 +69,12 @@ REPERTOIRE = [
          "moves": "1.d4 Nf6 2.Bf4 g6 3.e3 Bg7 4.Nf3 O-O 5.Be2 d6 6.h3 Nbd7 7.O-O c5 8.c3 b6"},
         {"id": "kid-colle", "name": "Against 2.Nf3 and 3.e3",
          "moves": "1.d4 Nf6 2.Nf3 g6 3.e3 Bg7 4.Bd3 O-O 5.O-O d6 6.c4 Nbd7 7.Nc3 e5"},
+        {"id": "flank-english", "name": "Against 1.c4 with Nc3 and g3",
+         "moves": "1.c4 Nf6 2.Nc3 g6 3.g3 Bg7 4.Bg2 O-O 5.Nf3 d6 6.O-O e5 7.d3 Nc6 8.Rb1 a5"},
+        {"id": "flank-transpose", "name": "Against 1.c4 and 3.e4",
+         "moves": "1.c4 Nf6 2.Nc3 g6 3.e4 d6 4.d4 Bg7 5.Nf3 O-O 6.Be2 e5"},
+        {"id": "flank-reti", "name": "Against 1.Nf3 (Réti and King's Indian Attack)",
+         "moves": "1.Nf3 Nf6 2.g3 g6 3.Bg2 Bg7 4.O-O O-O 5.d3 d6 6.c4 e5 7.Nc3 Nc6"},
     ]},
     {"id": "pirc", "name": "Pirc Defence", "colour": "black", "tabiya": 1, "lines": [
         {"id": "pirc-austrian", "name": "Austrian Attack",
@@ -98,14 +97,26 @@ REPERTOIRE = [
          "moves": "1.e4 c6 2.d4 d5 3.Nc3 dxe4 4.Nxe4 Bf5 5.Ng3 Bg6 6.h4 h6 7.Nf3 Nd7 8.h5 Bh7 9.Bd3 Bxd3 10.Qxd3 e6"},
         {"id": "caro-two-knights", "name": "Two Knights",
          "moves": "1.e4 c6 2.Nc3 d5 3.Nf3 Bg4 4.h3 Bxf3 5.Qxf3 e6 6.d4 Nf6 7.Bd3 dxe4 8.Nxe4 Nxe4 9.Qxe4 Nd7"},
+        {"id": "caro-panov", "name": "Panov-Botvinnik Attack",
+         "moves": "1.e4 c6 2.d4 d5 3.exd5 cxd5 4.c4 Nf6 5.Nc3 e6 6.Nf3 Bb4 7.cxd5 Nxd5 8.Bd2 Nc6 9.Bd3 O-O 10.O-O Be7"},
+        {"id": "caro-bayonet", "name": "Advance, 4.Nc3 and 5.g4",
+         "moves": "1.e4 c6 2.d4 d5 3.e5 Bf5 4.Nc3 e6 5.g4 Bg6 6.Nge2 c5 7.h4 h5 8.Nf4 Bh7 9.Nxh5 cxd4 10.Qxd4 Nc6"},
+        {"id": "caro-fantasy", "name": "Fantasy 3.f3",
+         "moves": "1.e4 c6 2.d4 d5 3.f3 e6 4.Nc3 Bb4 5.a3 Bxc3+ 6.bxc3 dxe4 7.fxe4 e5 8.Nf3 exd4 9.cxd4 Nf6"},
+        {"id": "caro-kia", "name": "Against 2.d3 (King's Indian Attack)",
+         "moves": "1.e4 c6 2.d3 d5 3.Nd2 e5 4.Ngf3 Bd6 5.g3 Nf6 6.Bg2 O-O 7.O-O Re8"},
     ]},
-    {"id": "kid-flank", "name": "King's Indian vs 1.c4 and 1.Nf3", "colour": "black", "tabiya": 1, "lines": [
-        {"id": "flank-english", "name": "English with Nc3 and g3",
-         "moves": "1.c4 Nf6 2.Nc3 g6 3.g3 Bg7 4.Bg2 O-O 5.Nf3 d6 6.O-O e5 7.d3 Nc6 8.Rb1 a5"},
-        {"id": "flank-reti", "name": "Réti and King's Indian Attack",
-         "moves": "1.Nf3 Nf6 2.g3 g6 3.Bg2 Bg7 4.O-O O-O 5.d3 d6 6.c4 e5 7.Nc3 Nc6"},
-        {"id": "flank-transpose", "name": "English into the King's Indian",
-         "moves": "1.c4 Nf6 2.Nc3 g6 3.e4 d6 4.d4 Bg7 5.Nf3 O-O 6.Be2 e5"},
+    {"id": "dutch", "name": "Leningrad Dutch", "colour": "black", "tabiya": 1, "lines": [
+        {"id": "dutch-main", "name": "Main line with g3 and c4",
+         "moves": "1.d4 f5 2.g3 Nf6 3.Bg2 g6 4.Nf3 Bg7 5.O-O O-O 6.c4 d6 7.Nc3 Qe8 8.d5 a5"},
+        {"id": "dutch-c4", "name": "Against 2.c4 and 3.Nc3",
+         "moves": "1.d4 f5 2.c4 Nf6 3.Nc3 g6 4.Nf3 Bg7 5.e3 O-O 6.Be2 d6 7.O-O Qe8"},
+        {"id": "dutch-staunton", "name": "Staunton Gambit 2.e4",
+         "moves": "1.d4 f5 2.e4 fxe4 3.Nc3 Nf6 4.Bg5 g6 5.f3 exf3 6.Nxf3 Bg7 7.Bd3 O-O 8.O-O d6"},
+        {"id": "dutch-bg5", "name": "Against 2.Bg5",
+         "moves": "1.d4 f5 2.Bg5 g6 3.Nd2 Bg7 4.c3 Nf6 5.Ngf3 O-O 6.e3 d6 7.Be2 Nbd7"},
+        {"id": "dutch-london", "name": "Against the London",
+         "moves": "1.d4 f5 2.Bf4 Nf6 3.e3 g6 4.Nf3 Bg7 5.Be2 O-O 6.O-O d6 7.c4 Nc6"},
     ]},
     {"id": "fun", "name": "Just for fun", "colour": "white", "tabiya": 2, "fun": True, "lines": [
         {"id": "fun-icbm", "name": "ICBM Gambit",
@@ -145,10 +156,34 @@ def compile_line(opening: dict, line: dict) -> dict:
             "plies": plies, "end_fen": board.fen()}
 
 
+def _preview(opening: dict, lines: list[dict]) -> str:
+    shared = 0
+    while all(shared < len(ln["plies"]) and ln["plies"][shared]["uci"] == lines[0]["plies"][shared]["uci"] for ln in lines):
+        shared += 1
+    plies = lines[0]["plies"]
+    at = min(opening.get("preview", max(shared, 2)), len(plies))
+    return plies[at]["fen"] if at < len(plies) else lines[0]["end_fen"]
+
+
 @lru_cache(maxsize=1)
 def repertoire() -> list[dict]:
-    return [{"id": o["id"], "name": o["name"], "colour": o["colour"], "fun": o.get("fun", False),
-             "lines": [compile_line(o, line) for line in o["lines"]]} for o in REPERTOIRE]
+    book = []
+    for o in REPERTOIRE:
+        lines = [compile_line(o, line) for line in o["lines"]]
+        book.append({"id": o["id"], "name": o["name"], "colour": o["colour"], "fun": o.get("fun", False),
+                     "preview": _preview(o, lines), "lines": lines})
+    return book
+
+
+def book_moves() -> dict[str, set[str]]:
+    """Every move your repertoire plays from each of your positions, across all openings."""
+    moves: dict[str, set[str]] = {}
+    for o in repertoire():
+        for ln in o["lines"]:
+            for p in ln["plies"]:
+                if "key" in p:
+                    moves.setdefault(p["key"], set()).add(p["san"])
+    return moves
 
 
 STATS_SQL = """
@@ -173,12 +208,14 @@ def stats(fetch) -> dict:
         ({"san": san, "games": len(m["games"]), "avg_loss": round(sum(m["loss"]) / len(m["loss"]), 1) if m["loss"] else None}
          for san, m in p["moves"].items()), key=lambda m: -m["games"])} for key, p in positions.items()}
 
+    book = book_moves()
+
     def slip(plies):
-        """Your most common move off the line in these positions."""
+        """Your most common move off the line in these positions. Another opening's move from there is not a slip."""
         worst = None
         for p in plies:
             for san, m in positions[p["key"]]["moves"].items():
-                if san != p["san"] and (worst is None or len(m["games"]) > worst["times"]):
+                if san not in book[p["key"]] and (worst is None or len(m["games"]) > worst["times"]):
                     worst = {"label": p["label"], "book": p["san"], "san": san, "times": len(m["games"])}
         return worst
 

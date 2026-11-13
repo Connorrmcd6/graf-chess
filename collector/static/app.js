@@ -143,9 +143,11 @@ function boardSheet(p) {
 }
 
 // A board you move on by tapping a piece then its square, or by dragging it there. legal: {uci: san}.
-// Promotions become queens. Returns {el, set({fen, legal, you, best, play, locked})}: the image is redrawn
-// server-side with the arrows; play draws the position after that move (a wrong move, to take back).
+// Drawn in the browser so pieces slide between positions. Promotions become queens.
+// set({fen, legal, you, best, play, last, check, locked}): you/best are red/green arrows, play is a move made
+// on the board first (a wrong move, to take back), last highlights the previous move, check the king in check.
 const FILES = "abcdefgh";
+const PIECE_NAME = { p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king" };
 function pieceAt(fen) {
   const at = {};
   fen.split(" ")[0].split("/").forEach((rank, r) => {
@@ -158,15 +160,46 @@ function pieceAt(fen) {
   return at;
 }
 
+function applyMove(at, uci) {
+  const from = uci.slice(0, 2), to = uci.slice(2, 4), piece = at[from];
+  if (!piece) return at;
+  const next = { ...at };
+  delete next[from];
+  if (piece.toLowerCase() === "p" && from[0] !== to[0] && !at[to]) delete next[to[0] + from[1]];
+  if (piece.toLowerCase() === "k" && Math.abs(FILES.indexOf(to[0]) - FILES.indexOf(from[0])) === 2) {
+    const [rf, rt] = to[0] === "g" ? ["h", "f"] : ["a", "d"];
+    next[rt + from[1]] = next[rf + from[1]];
+    delete next[rf + from[1]];
+  }
+  next[to] = uci[4] ? (piece === piece.toUpperCase() ? uci[4].toUpperCase() : uci[4]) : piece;
+  return next;
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+function svgEl(tag, attrs) {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
 function tapBoard({ colour, onMove }) {
-  let legal = {}, selected = null, locked = false, pieces = {}, drag = null;
-  const img = h("img", { class: "big-board", alt: "Board position", draggable: "false" });
-  const ghost = h("img", { class: "ghost hidden", alt: "", draggable: "false" });
+  let legal = {}, selected = null, locked = false, at = {}, drag = null, lastMove = "";
+  const flip = colour === "black";
+  const cell = (sq) => {
+    const f = FILES.indexOf(sq[0]), r = Number(sq[1]) - 1;
+    return flip ? [7 - f, r] : [f, 7 - r];
+  };
+  const place = (sq) => { const [c, r] = cell(sq); return `translate(${c * 100}%, ${r * 100}%)`; };
+  for (const p of "pnbrqkPNBRQK") new Image().src = "/piece.svg?p=" + p;
+
+  const marks = h("div", { class: "marks" });
+  const layer = h("div", { class: "pieces" });
+  const arrows = svgEl("svg", { class: "arrows", viewBox: "0 0 8 8", "aria-hidden": "true" });
   const grid = h("div", { class: "grid" });
   const squares = [];
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
-      const name = colour === "white" ? FILES[col] + (8 - row) : FILES[7 - col] + (row + 1);
+      const name = flip ? FILES[7 - col] + (row + 1) : FILES[col] + (8 - row);
       // Pointer events do the work; click only fires on its own for the keyboard (detail 0).
       const sq = h("button", { class: "sq", "aria-label": name, onclick: (e) => { if (!e.detail) tap(name); } });
       sq.dataset.square = name;
@@ -174,14 +207,81 @@ function tapBoard({ colour, onMove }) {
       grid.append(sq);
     }
   }
-  const el = h("div", { class: "drill-board" }, img, grid, ghost);
+  const coords = h("div", { class: "coords", "aria-hidden": "true" },
+    [...Array(8)].map((_, k) => h("span", { class: "file " + (k % 2 ? "on-light" : "on-dark"), style: `left:${k * 12.5}%` },
+      flip ? FILES[7 - k] : FILES[k])),
+    [...Array(8)].map((_, k) => h("span", { class: "rank " + (k % 2 ? "on-dark" : "on-light"), style: `top:${k * 12.5}%` },
+      flip ? k + 1 : 8 - k)));
+  const el = h("div", { class: "drill-board" }, h("div", { class: "squares" }), coords, marks, layer, arrows, grid);
+  let els = {};
+
+  function redraw(next, animate) {
+    const keep = {}, free = [];
+    for (const [sq, p] of Object.entries(els)) (next[sq] === p.dataset.piece ? (keep[sq] = p) : free.push([sq, p]));
+    const changed = Object.keys(next).filter((sq) => !keep[sq]).length;
+    animate = animate && changed <= 4;
+    el.classList.toggle("still", !animate);
+    for (const [sq, piece] of Object.entries(next)) {
+      if (keep[sq]) continue;
+      const [c, r] = cell(sq);
+      let best = -1, dist = Infinity;
+      free.forEach(([from, p], k) => {
+        if (!p || p.dataset.piece !== piece) return;
+        const [fc, fr] = cell(from), d = Math.hypot(fc - c, fr - r);
+        if (d < dist) { dist = d; best = k; }
+      });
+      let p;
+      if (best >= 0) { p = free[best][1]; free[best][1] = null; }
+      else {
+        p = h("img", { class: "pc", src: "/piece.svg?p=" + piece, alt: "", draggable: "false" });
+        p.dataset.piece = piece;
+        p.style.transform = place(sq);
+        layer.append(p);
+      }
+      p.classList.remove("drag");
+      p.style.transform = place(sq);
+      keep[sq] = p;
+    }
+    for (const [, p] of free) if (p) { p.classList.add("gone"); setTimeout(() => p.remove(), animate ? 180 : 0); }
+    els = keep;
+    if (!animate) void el.offsetWidth;  // apply the jump before transitions come back
+    el.classList.remove("still");
+  }
+
+  function square(sq, cls) {
+    const [c, r] = cell(sq);
+    return h("i", { class: cls, style: `transform:translate(${c * 100}%, ${r * 100}%)` });
+  }
+
+  function drawArrows(list) {
+    arrows.replaceChildren();
+    for (const [uci, kind] of list) {
+      if (!uci) continue;
+      const [x1, y1] = cell(uci.slice(0, 2)), [x2, y2] = cell(uci.slice(2, 4));
+      const len = Math.hypot(x2 - x1, y2 - y1), ux = (x2 - x1) / len, uy = (y2 - y1) / len;
+      const head = 0.42, end = [x2 + .5 - ux * 0.2, y2 + .5 - uy * 0.2], base = [end[0] - ux * head, end[1] - uy * head];
+      const g = svgEl("g", { class: "arrow " + kind });
+      g.append(svgEl("line", { x1: x1 + .5, y1: y1 + .5, x2: base[0], y2: base[1] }),
+        svgEl("polygon", { points: [end, [base[0] - uy * .26, base[1] + ux * .26], [base[0] + uy * .26, base[1] - ux * .26]]
+          .map((p) => p.join(",")).join(" ") }));
+      arrows.append(g);
+    }
+  }
 
   function highlight() {
     const targets = new Set(Object.keys(legal).filter((m) => m.startsWith(selected || "-")).map((m) => m.slice(2, 4)));
     for (const sq of squares) {
-      sq.classList.toggle("sel", sq.dataset.square === selected);
-      sq.classList.toggle("target", targets.has(sq.dataset.square));
-      sq.classList.toggle("lifted", !!drag?.moving && sq.dataset.square === drag.from);
+      const name = sq.dataset.square;
+      sq.classList.toggle("sel", name === selected);
+      sq.classList.toggle("target", targets.has(name) && !at[name]);
+      sq.classList.toggle("capture", targets.has(name) && !!at[name]);
+      sq.classList.toggle("lifted", !!drag?.moving && name === drag.from);
+    }
+  }
+  function labels() {
+    for (const sq of squares) {
+      const p = at[sq.dataset.square];
+      sq.setAttribute("aria-label", sq.dataset.square + (p ? `, ${p === p.toUpperCase() ? "white" : "black"} ${PIECE_NAME[p.toLowerCase()]}` : ""));
     }
   }
   const movable = (square) => Object.keys(legal).some((m) => m.startsWith(square));
@@ -204,15 +304,14 @@ function tapBoard({ colour, onMove }) {
     const col = Math.floor((x - r.left) / (r.width / 8)), row = Math.floor((y - r.top) / (r.height / 8));
     return col < 0 || col > 7 || row < 0 || row > 7 ? null : squares[row * 8 + col].dataset.square;
   }
-  function moveGhost(e) {
-    const box = el.getBoundingClientRect(), size = grid.getBoundingClientRect().width / 8 * 1.3;
-    const lift = e.pointerType === "touch" ? size * 0.45 : 0;  // keep the piece visible above your finger
-    ghost.style.width = ghost.style.height = size + "px";
-    ghost.style.transform = `translate(${e.clientX - box.left - size / 2}px, ${e.clientY - box.top - size / 2 - lift}px)`;
+  function moveDragged(e) {
+    const box = el.getBoundingClientRect(), size = box.width / 8;
+    const lift = e.pointerType === "touch" ? size * 0.5 : 0;  // keep the piece visible above your finger
+    drag.el.style.transform = `translate(${e.clientX - box.left - size / 2}px, ${e.clientY - box.top - size / 2 - lift}px) scale(${e.pointerType === "touch" ? 1.25 : 1.08})`;
   }
-  function endDrag() {
+  function endDrag(snapBack) {
+    if (drag?.moving && snapBack) { drag.el.classList.remove("drag"); drag.el.style.transform = place(drag.from); }
     drag = null;
-    ghost.classList.add("hidden");
     highlight();
   }
 
@@ -225,41 +324,52 @@ function tapBoard({ colour, onMove }) {
     if (!movable(square)) { selected = null; return highlight(); }
     const wasSelected = selected === square;
     selected = square;
-    drag = { from: square, x: e.clientX, y: e.clientY, moving: false, wasSelected };
+    drag = { from: square, x: e.clientX, y: e.clientY, moving: false, wasSelected, el: els[square] };
     grid.setPointerCapture(e.pointerId);
     highlight();
   });
   grid.addEventListener("pointermove", (e) => {
-    if (!drag) return;
+    if (!drag || !drag.el) return;
     if (!drag.moving) {
       if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 6) return;
       drag.moving = true;
-      ghost.src = "/piece.svg?p=" + pieces[drag.from];
-      ghost.classList.remove("hidden");
+      drag.el.classList.add("drag");
       highlight();
     }
-    moveGhost(e);
+    moveDragged(e);
   });
   grid.addEventListener("pointerup", (e) => {
     if (!drag) return;
     const { from, moving, wasSelected } = drag;
-    endDrag();
     if (moving) {
       const to = squareAt(e.clientX, e.clientY);
-      if (to && to !== from) play(from, to);
-    } else if (wasSelected) {  // tapping the selected piece again puts it down
-      selected = null;
-      highlight();
+      const played = to && to !== from && (() => { const d = drag; drag = null; const ok = play(from, to); drag = ok ? null : d; return ok; })();
+      if (!played) endDrag(true);
+    } else {
+      endDrag(false);
+      if (wasSelected) { selected = null; highlight(); }  // tapping the selected piece again puts it down
     }
   });
-  grid.addEventListener("pointercancel", endDrag);
+  grid.addEventListener("pointercancel", () => endDrag(true));
 
-  function set({ fen, legal: moves, you = "", best = "", play: played = "", locked: lock = false }) {
-    if (fen) { img.src = boardUrl(fen, colour, you, best, played); pieces = pieceAt(fen); }
+  function set({ fen, legal: moves, you = "", best = "", play: played = "", last = "", check = false, locked: lock = false }) {
+    if (fen) {
+      const first = !Object.keys(els).length;
+      at = pieceAt(fen);
+      if (played) { at = applyMove(at, played); you = played; last = ""; }
+      lastMove = played || last;
+      redraw(at, !first);
+      const turn = played ? (fen.split(" ")[1] === "w" ? "b" : "w") : fen.split(" ")[1];
+      const king = check && Object.keys(at).find((sq) => at[sq] === (turn === "w" ? "K" : "k"));
+      marks.replaceChildren(...(lastMove ? [square(lastMove.slice(0, 2), "last"), square(lastMove.slice(2, 4), "last")] : []),
+        king ? square(king, "check") : "");
+      drawArrows([[you, "red"], [best !== you ? best : "", "green"]]);
+      labels();
+    }
     if (moves) legal = moves;
     locked = lock;
     selected = null;
-    if (drag) endDrag();
+    drag = null;
     grid.classList.toggle("locked", lock);
     highlight();
   }
