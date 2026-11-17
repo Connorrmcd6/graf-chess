@@ -83,6 +83,14 @@ function pickNext(lines, skip) {
     || (status(a.id) === "learning" ? prog(b.id).streak - prog(a.id).streak : 0)
     || (status(a.id) === "new" ? 0 : (prog(a.id).last || 0) - (prog(b.id).last || 0)))[0];
 }
+// After finishing a line: reviews first, else the next unlearned line down the list, which is sorted most frequent first.
+function nextAfter(lines, id) {
+  const due = lines.find((l) => l.id !== id && status(l.id) === "due");
+  if (due) return due;
+  const i = lines.findIndex((l) => l.id === id);
+  const after = [...lines.slice(i + 1), ...lines.slice(0, i)];
+  return after.find((l) => status(l.id) !== "learned") || pickNext(lines, id);
+}
 function allLines() { return book.filter((o) => !o.fun).flatMap((o) => o.lines); }
 
 function render() {
@@ -635,7 +643,7 @@ function practise(pool, mode, hiddenKey, start = 0) {
       ? [h("a", { class: "btn grow", href: "#l/" + line.id }, "This line"),
         h("a", { class: "btn primary grow", href: "#h/" + hiddenKey, id: "next", onclick: (e) => { e.preventDefault(); again(); } }, "Another ▶")]
       : [h("a", { class: "btn " + (learning ? "primary" : "") + " grow", href: "#l/" + line.id, onclick: (e) => { e.preventDefault(); go("#l/" + line.id); } }, learning ? "Practise it" : "Again"),
-        h("a", { class: "btn " + (learning ? "" : "primary") + " grow", href: lineHref(pickNext(o.lines, line.id)), id: "next" }, "Next line ▶")];
+        h("a", { class: "btn " + (learning ? "" : "primary") + " grow", href: lineHref(nextAfter(o.lines, line.id)), id: "next" }, "Next line ▶")];
     showNote([plies.length - 1]);
     extra.replaceChildren(noteEl, h("div", { class: "done" },
       !learning && dots(p.streak),
