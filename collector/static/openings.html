@@ -207,6 +207,7 @@ function linesView(o, tree) {
           h("div", { class: "row" }, h("b", { class: "grow" }, l.name), statusTag(l.id)),
           h("div", { class: "line clamp" }, l.moves),
           h("div", { class: "small muted" }, [
+            l.freq != null && `${l.freq < 0.1 ? "<0.1" : l.freq}% of 1400-1800 games`,
             s.games ? `${s.games} of your games` : "Not in your analysed games yet",
             s.deepest && `you got as far as ${s.deepest}`].filter(Boolean).join(" · ")),
           slipNote(s.slip)));

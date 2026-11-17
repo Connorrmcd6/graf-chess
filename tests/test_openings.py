@@ -79,6 +79,14 @@ def test_repertoire_changes_and_previews():
         chess.Board(o["preview"])
 
 
+def test_lines_come_most_frequent_first():
+    book = {o["id"]: o for o in openings.repertoire()}
+    for opening in ("london", "vienna-gambit", "kid", "caro"):
+        freqs = [ln["freq"] for ln in book[opening]["lines"]]
+        assert None not in freqs and freqs == sorted(freqs, reverse=True), opening
+    assert book["pirc"]["lines"][0]["id"] == "pirc-austrian" and book["pirc"]["lines"][0]["freq"] is None
+
+
 def test_one_move_of_yours_per_position():
     """Black picks a defence on move one; after that the repertoire never has two answers to the same position."""
     seen = {}
