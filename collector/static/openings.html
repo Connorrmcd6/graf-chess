@@ -91,7 +91,9 @@ function nextAfter(lines, id) {
   const after = [...lines.slice(i + 1), ...lines.slice(0, i)];
   return after.find((l) => status(l.id) !== "learned") || pickNext(lines, id);
 }
-function allLines() { return book.filter((o) => !o.fun).flatMap((o) => o.lines); }
+// Fun and bullet openings stay out of the daily practice, hidden mode and the explorer.
+function core(o) { return !o.fun && !o.bullet; }
+function allLines() { return book.filter(core).flatMap((o) => o.lines); }
 
 function render() {
   if (!book) return;
@@ -176,6 +178,8 @@ function hiddenButton(href, label, sub) {
 
 function openingsView() {
   const group = (title, list) => list.length ? section(title, h("div", { class: "list" }, list.map(openingRow))) : [];
+  const bulletGroup = (list) => list.length ? section("Bullet", nextCard(list.flatMap((o) => o.lines), "Bullet practice"),
+    h("div", { class: "list" }, list.map(openingRow))) : [];
   return [
     nextCard(allLines(), "Today's practice", true),
     h("div", { class: "hidden-pair" },
@@ -187,8 +191,9 @@ function openingsView() {
         h("div", { class: "small muted" }, "Find the move you missed in your own games")),
       h("span", { class: "muted chev", "aria-hidden": "true" }, "›"))),
     mapCard(),
-    ...group("As White", book.filter((o) => !o.fun && o.colour === "white")),
-    ...group("As Black", book.filter((o) => !o.fun && o.colour === "black")),
+    ...group("As White", book.filter((o) => core(o) && o.colour === "white")),
+    ...group("As Black", book.filter((o) => core(o) && o.colour === "black")),
+    ...bulletGroup(book.filter((o) => o.bullet)),
     ...group("Just for fun", book.filter((o) => o.fun)),
     h("p", { class: "small muted" },
       "New lines start in Learn mode, which shows each move. In Practise you play from memory. ",
@@ -215,7 +220,7 @@ function linesView(o, tree) {
           h("div", { class: "row" }, h("b", { class: "grow" }, l.name), statusTag(l.id)),
           h("div", { class: "line clamp" }, l.moves),
           h("div", { class: "small muted" }, [
-            l.freq != null && `${l.freq < 0.1 ? "<0.1" : l.freq}% of 1400-1800 games`,
+            l.freq != null && `${l.freq < 0.1 ? "<0.1" : l.freq}% of 1400-1800 ${o.bullet ? "bullet " : ""}games`,
             s.games ? `${s.games} of your games` : "Not in your analysed games yet",
             s.deepest && `you got as far as ${s.deepest}`].filter(Boolean).join(" · ")),
           slipNote(s.slip)));
@@ -265,7 +270,7 @@ function treeView(o) {
 // Every opening for a colour merged into one tree of moves.
 function repTree(colour) {
   const root = { kids: [], items: [], depth: 0 };
-  for (const o of book.filter((x) => !x.fun && x.colour === colour)) {
+  for (const o of book.filter((x) => core(x) && x.colour === colour)) {
     for (const line of o.lines) {
       let node = root;
       root.items.push({ o, line });
@@ -431,7 +436,7 @@ function hiddenPool(key) {
     const prefix = line.plies.slice(0, Number(depth)).map((p) => p.uci).join();
     return o.lines.filter((l) => l.plies.slice(0, Number(depth)).map((p) => p.uci).join() === prefix).map((l) => ({ o, line: l }));
   }
-  const openings = key === "white" || key === "black" ? book.filter((o) => !o.fun && o.colour === key) : book.filter((o) => o.id === key);
+  const openings = key === "white" || key === "black" ? book.filter((o) => core(o) && o.colour === key) : book.filter((o) => o.id === key);
   return openings.flatMap((o) => o.lines.map((line) => ({ o, line })));
 }
 // Runs from the explorer or a tree branch start at that position; the moves before it are already played.

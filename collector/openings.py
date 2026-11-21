@@ -5,6 +5,7 @@ starting position. ``tabiya`` is how many plies are common to every line before 
 the stats only count positions from there on, so the start position (reached in every game) never counts.
 ``preview`` is how many plies of the first line the opening's thumbnail shows (default: the moves every line shares).
 ``freq`` is the % of 1400-1800 Lichess blitz/rapid games, with your moves, that reach the line's first move no other line has.
+``bullet`` openings use bullet games for ``freq`` and sit in their own section, out of the daily practice.
 Lines are practised most frequent first.
 Lines are replayed with python-chess on import, so a typo fails loudly here and in the tests.
 """
@@ -250,6 +251,92 @@ REPERTOIRE = [
         {"id": "dutch-london", "name": "Against the London",
          "moves": "1.d4 f5 2.Bf4 Nf6 3.e3 g6 4.Nf3 Bg7 5.Be2 O-O 6.O-O d6 7.c4 Nc6"},
     ]},
+    {"id": "grob", "name": "Grob Opening", "colour": "white", "tabiya": 1, "preview": 3, "bullet": True, "lines": [
+        {"id": "grob-fritz-c6", "freq": 0.96, "name": "Grob Gambit 3…c6 4.Qb3",
+         "moves": "1.g4 d5 2.Bg2 Bxg4 3.c4 c6 4.Qb3 Bc8 5.cxd5 cxd5 6.Nc3"},
+        {"id": "grob-fritz-qb6", "freq": 0.79, "name": "Grob Gambit, 4…Qb6",
+         "moves": "1.g4 d5 2.Bg2 Bxg4 3.c4 c6 4.Qb3 Qb6 5.cxd5"},
+        {"id": "grob-fritz-dxc4", "freq": 1.7, "name": "Grob Gambit 3…dxc4, grab the rook",
+         "moves": "1.g4 d5 2.Bg2 Bxg4 3.c4 dxc4 4.Bxb7 Nd7 5.Bxa8 Qxa8 6.f3"},
+        {"id": "grob-fritz-e6", "freq": 2.3, "name": "Grob Gambit 3…e6 4.Qa4+",
+         "moves": "1.g4 d5 2.Bg2 Bxg4 3.c4 e6 4.Qa4+ c6 5.cxd5"},
+        {"id": "grob-fritz-nf6", "freq": 1.1, "name": "Grob Gambit 3…Nf6",
+         "moves": "1.g4 d5 2.Bg2 Bxg4 3.c4 Nf6 4.cxd5 Nxd5 5.Qb3"},
+        {"id": "grob-c6", "freq": 5.8, "name": "Declined 2…c6",
+         "moves": "1.g4 d5 2.Bg2 c6 3.h3 e5 4.d3"},
+        {"id": "grob-e5", "freq": 4.1, "name": "2…e5 3.d4",
+         "moves": "1.g4 d5 2.Bg2 e5 3.d4 e4 4.c4"},
+        {"id": "grob-e6", "freq": 3.9, "name": "…d5 and …e6",
+         "moves": "1.g4 d5 2.Bg2 e6 3.d4 c5 4.c4"},
+        {"id": "grob-nf6", "freq": 2.5, "name": "2…Nf6 3.g5",
+         "moves": "1.g4 d5 2.Bg2 Nf6 3.g5 Ne4 4.d3"},
+        {"id": "grob-nc6", "freq": 2.8, "name": "2…Nc6 3.c4",
+         "moves": "1.g4 d5 2.Bg2 Nc6 3.c4 dxc4 4.Qa4"},
+        {"id": "grob-d5-c5", "freq": 2.2, "name": "2…c5 3.c4 d4",
+         "moves": "1.g4 d5 2.Bg2 c5 3.c4 d4 4.d3"},
+        {"id": "grob-c5", "freq": 8.7, "name": "1…c5",
+         "moves": "1.g4 c5 2.Bg2 Nc6 3.c4 e6 4.Nc3"},
+        {"id": "grob-g6", "freq": 6.6, "name": "1…g6",
+         "moves": "1.g4 g6 2.Bg2 Bg7 3.c4 d6 4.d4"},
+        {"id": "grob-e5-nc6", "freq": 3.7, "name": "1…e5 2.Bg2 Nc6",
+         "moves": "1.g4 e5 2.Bg2 Nc6 3.Nc3"},
+        {"id": "grob-e5-d6", "freq": 2.2, "name": "1…e5 2.Bg2 d6",
+         "moves": "1.g4 e5 2.Bg2 d6 3.d4"},
+    ]},
+    {"id": "busch-gass", "name": "Busch-Gass Gambit and 1…e5", "colour": "black", "tabiya": 1, "preview": 4, "bullet": True, "lines": [
+        {"id": "bg-italian-d4", "freq": 2.2, "name": "Italian, 4.c3 and 5.d4",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Bc4 Nc6 4.c3 Nf6 5.d4 exd4 6.cxd4 Bb4+ 7.Bd2 Bxd2+ 8.Nbxd2 d5"},
+        {"id": "bg-italian-d3", "freq": 0.92, "name": "Italian, quiet c3 and d3",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Bc4 Nc6 4.c3 Nf6 5.d3 d6"},
+        {"id": "bg-italian-castle", "freq": 3.1, "name": "Italian, 4.O-O",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Bc4 Nc6 4.O-O Nf6 5.d3 d6"},
+        {"id": "bg-italian-4d3", "freq": 2.8, "name": "Italian, 4.d3",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Bc4 Nc6 4.d3 Nf6 5.c3 d6"},
+        {"id": "bg-italian-nc3", "freq": 1, "name": "Italian, 4.Nc3",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Bc4 Nc6 4.Nc3 Nf6 5.d3 d6"},
+        {"id": "bg-italian-fork-trick", "freq": 0.0089, "name": "Italian, the 5.Nxe5 fork trick fails",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Bc4 Nc6 4.Nc3 Nf6 5.Nxe5 Nxe5 6.d4 Nxc4"},
+        {"id": "bg-evans", "freq": 1.4, "name": "Evans Gambit 4.b4",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Bc4 Nc6 4.b4 Bxb4 5.c3 Ba5 6.d4 d6"},
+        {"id": "bg-d4-nxd4", "freq": 4.2, "name": "3.d4 exd4 4.Nxd4",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.d4 exd4 4.Nxd4 Nf6 5.Nc3 O-O"},
+        {"id": "bg-d4-bc4", "freq": 0.63, "name": "3.d4 exd4 4.Bc4",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.d4 exd4 4.Bc4 Nf6 5.e5 d5 6.Bb5+ Nfd7"},
+        {"id": "bg-d4-c3", "freq": 0.33, "name": "3.d4 exd4 4.c3",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.d4 exd4 4.c3 dxc3 5.Nxc3 d6"},
+        {"id": "bg-nc3", "freq": 1.2, "name": "3.Nc3",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Nc3 d6 4.Bc4 Nf6 5.d3 O-O"},
+        {"id": "bg-nc3-d4", "freq": 0.7, "name": "3.Nc3 d6 4.d4",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Nc3 d6 4.d4 exd4 5.Nxd4 Nf6"},
+        {"id": "bg-chiodini-bc4", "freq": 0.38, "name": "Chiodini 3.Nxe5, 5.Bc4 Bxf2+",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Nxe5 Nc6 4.Nxc6 dxc6 5.Bc4 Bxf2+ 6.Kxf2 Qd4+ 7.Ke1 Qxc4"},
+        {"id": "bg-chiodini-c3", "freq": 0.37, "name": "Chiodini, 5.c3 Qh4",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Nxe5 Nc6 4.Nxc6 dxc6 5.c3 Qh4"},
+        {"id": "bg-chiodini-d4", "freq": 0.32, "name": "Chiodini, 5.d4 Bxd4",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.Nxe5 Nc6 4.Nxc6 dxc6 5.d4 Bxd4"},
+        {"id": "bg-c3", "freq": 1.3, "name": "3.c3",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.c3 Nf6 4.d4 exd4 5.cxd4 Bb4+ 6.Bd2 Bxd2+ 7.Nbxd2 d5"},
+        {"id": "bg-c3-e5", "freq": 0.16, "name": "3.c3, 5.e5",
+         "moves": "1.e4 e5 2.Nf3 Bc5 3.c3 Nf6 4.d4 exd4 5.e5 Nd5 6.cxd4 Bb4+"},
+        {"id": "bg-vienna", "freq": 1.4, "name": "Vienna 2.Nc3 Bc5 3.Bc4",
+         "moves": "1.e4 e5 2.Nc3 Bc5 3.Bc4 Nf6 4.d3 d6"},
+        {"id": "bg-vienna-qg4", "freq": 0.017, "name": "Vienna 3.Qg4, the queen trap",
+         "moves": "1.e4 e5 2.Nc3 Bc5 3.Qg4 Nf6 4.Qxg7 Rg8 5.Qh6 Bxf2+ 6.Kxf2 Ng4+"},
+        {"id": "bg-bishops-qh5", "freq": 0.78, "name": "Bishop's Opening 3.Qh5",
+         "moves": "1.e4 e5 2.Bc4 Bc5 3.Qh5 Qe7 4.Nf3 Nc6"},
+        {"id": "bg-bishops-qf3", "freq": 0.7, "name": "Bishop's Opening 3.Qf3",
+         "moves": "1.e4 e5 2.Bc4 Bc5 3.Qf3 Nf6"},
+        {"id": "bg-danish", "freq": 1.6, "name": "Danish 2.d4 exd4 3.c3",
+         "moves": "1.e4 e5 2.d4 exd4 3.c3 d5 4.exd5 Qxd5 5.cxd4 Nc6"},
+        {"id": "bg-center-qe3", "freq": 0.5, "name": "Center Game 4.Qe3",
+         "moves": "1.e4 e5 2.d4 exd4 3.Qxd4 Nc6 4.Qe3 Nf6 5.Nc3 Bb4"},
+        {"id": "bg-center-qd1", "freq": 0.65, "name": "Center Game 4.Qd1",
+         "moves": "1.e4 e5 2.d4 exd4 3.Qxd4 Nc6 4.Qd1 Nf6"},
+        {"id": "bg-kgd", "freq": 3.7, "name": "King's Gambit 2.f4 Bc5",
+         "moves": "1.e4 e5 2.f4 Bc5 3.Nf3 d6 4.c3 Nf6"},
+        {"id": "bg-kgd-trap", "freq": 0.29, "name": "King's Gambit 3.fxe5?? Qh4+",
+         "moves": "1.e4 e5 2.f4 Bc5 3.fxe5 Qh4+ 4.g3 Qxe4+ 5.Qe2 Qxh1"},
+    ]},
     {"id": "fun", "name": "Just for fun", "colour": "white", "tabiya": 2, "fun": True, "lines": [
         {"id": "fun-icbm", "name": "ICBM Gambit",
          "moves": "1.e4 d5 2.Nf3 dxe4 3.Ng5 Nf6 4.d3 exd3 5.Bxd3 h6 6.Nxf7 Kxf7 7.Bg6+ Kxg6 8.Qxd8"},
@@ -387,7 +474,7 @@ NOTES = {
     "Nf3 Nf6": "Mirror White and stick to your setup.",
     "Nf3 Nf6 g3 g6 Bg2 Bg7 O-O O-O d3 d6 c4 e5": "Claim the centre, since White is playing slowly.",
     "Nf3 Nf6 g3 g6 Bg2 Bg7 O-O O-O d3 d6 c4 e5 Nc3 Nc6": "Natural development. You have a comfortable, equal position.",
-    "e4 e5 Nc3": "The Vienna: develop the knight but keep the f-pawn free to push to f4, like a better-prepared King's Gambit.",
+    "white: e4 e5 Nc3": "The Vienna: develop the knight but keep the f-pawn free to push to f4, like a better-prepared King's Gambit.",
     "e4 e5 Nc3 Nc6": "Black defends e5 and keeps options open.",
     "e4 e5 Nc3 Nc6 Bc4": "Aims at f7, Black's weakest square. d3 and often f4 come next.",
     "e4 e5 Nc3 Nc6 Bc4 Nf6 d3": "Protects e4, so ...Nxe4 tricks don't work, and frees your other bishop.",
@@ -405,7 +492,7 @@ NOTES = {
     "e4 e5 Nc3 Nc6 Bc4 Bc5 Qg4 g6 Qf3": "Now you threaten Qxf7 mate! Black must block with ...Nf6 or ...Qf6.",
     "e4 e5 Nc3 Nc6 Bc4 Bc5 Qg4 g6 Qf3 Nf6 Nge2": "Develop and keep f3 for the queen.",
     "e4 e5 Nc3 Nc6 Bc4 Bc5 Qg4 g6 Qf3 Nf6 Nge2 d6 d3": "Solid: you're slightly better thanks to the active bishop on c4.",
-    "e4 e5 Nc3 Bc5": "The bishop eyes f2.",
+    "white: e4 e5 Nc3 Bc5": "The bishop eyes f2.",
     "e4 e5 Nc3 Bc5 Nf3": "Attack e5 and develop.",
     "e4 e5 Nc3 Bc5 Nf3 d6 d4": "Strike the centre, gaining time on the c5 bishop.",
     "e4 e5 Nc3 Bc5 Nf3 d6 d4 exd4 Nxd4": "Recapture. Your knight sits strongly in the centre.",
@@ -757,6 +844,35 @@ NOTES = {
     "d4 Nf6 Bg5": "The Trompowsky: White threatens to double your pawns.",
     "d4 Nf6 Bg5 g6": "Keep your King's Indian setup.",
     "d4 Nf6 Bg5 g6 Bxf6 exf6": "Take towards the centre. You get the two bishops, and ...d5 and ...Bg7 come next.",
+    # Bullet: Grob
+    "white: g4": "The Grob. Grabs kingside space and opens the long diagonal for your bishop on g2.",
+    "white: g4 d5 Bg2": "The bishop hits d5 and, behind it, b7. Most of the Grob is about this diagonal.",
+    "white: g4 d5 Bg2 Bxg4 c4": "The Grob Gambit point: hit d5 again. If it falls, b7 and the a8 rook are next on the diagonal.",
+    "white: g4 d5 Bg2 Bxg4 c4 c6 Qb3": "The queen joins the attack on b7. Stockfish's top move here.",
+    "white: g4 d5 Bg2 Bxg4 c4 dxc4 Bxb7": "Take b7, and the a8 rook is attacked.",
+    "white: g4 d5 Bg2 Bxg4 c4 dxc4 Bxb7 Nd7 Bxa8 Qxa8 f3": "The only good move: blocks the queen's diagonal to h1 and hits the g4 bishop. 6.d3 or 6.d4 lose to ...Qxh1.",
+    "white: g4 d5 Bg2 Bxg4 c4 e6 Qa4+": "Stockfish's best. After ...c6 you take on d5 and the c-file opens.",
+    "white: g4 d5 Bg2 Bxg4 c4 Nf6 cxd5 Nxd5 Qb3": "Hits b7 and the d5 knight together.",
+    "white: g4 d5 Bg2 e5 d4": "Hit e5 before Black builds a big centre. 3.c4 is more common but Stockfish rates it a lot worse.",
+    "white: g4 d5 Bg2 Nf6 g5": "Kick the knight. The pawn is safe on g5 and Stockfish rates this about equal.",
+    "white: g4 d5 Bg2 Nc6 c4 dxc4 Qa4": "Pins the knight and wins the c4 pawn back.",
+    # Bullet: Busch-Gass
+    "black: e4 e5 Nf3 Bc5": "The Busch-Gass: the bishop aims at f2 straight away. If 3.Nxe5, play ...Nc6, the Chiodini.",
+    "black: e4 e5 Nf3 Bc5 Nxe5 Nc6": "The Chiodini: let White take again, then develop fast and go after f2.",
+    "black: e4 e5 Nf3 Bc5 Nxe5 Nc6 Nxc6 dxc6 Bc4 Bxf2+": "Drag the king out, then ...Qd4+ forks it and the c4 bishop.",
+    "black: e4 e5 Nf3 Bc5 Nxe5 Nc6 Nxc6 dxc6 Bc4 Bxf2+ Kxf2 Qd4+ Ke1 Qxc4": "The piece is back and White can't castle. About equal.",
+    "black: e4 e5 Nf3 Bc5 Nxe5 Nc6 Nxc6 dxc6 c3 Qh4": "Hits e4 and f2. ...Nf6 and ...Ng4 come next.",
+    "black: e4 e5 Nf3 Bc5 Nxe5 Nc6 Nxc6 dxc6 d4 Bxd4": "Take the pawn. If 6.Qxd4, ...Qxd4 trades queens down the open d-file.",
+    "black: e4 e5 Nf3 Bc5 Bc4 Nc6 Nc3 Nf6 Nxe5": "This looks like the fork trick, but it doesn't work here. Just take.",
+    "black: e4 e5 Nf3 Bc5 Bc4 Nc6 Nc3 Nf6 Nxe5 Nxe5 d4 Nxc4": "After 7.dxc5 you're a knight up for a pawn.",
+    "black: e4 e5 Nf3 Bc5 Bc4 Nc6 b4 Bxb4 c3 Ba5": "Take the gambit pawn and keep the bishop pinning c3.",
+    "black: e4 e5 Nf3 Bc5 d4 exd4 Bc4 Nf6 e5 d5": "Hit the bishop instead of moving the knight. If 6.exf6, ...dxc4.",
+    "black: e4 e5 Nc3 Bc5 Qg4 Nf6": "Let the queen take g7: it gets trapped.",
+    "black: e4 e5 Nc3 Bc5 Qg4 Nf6 Qxg7 Rg8 Qh6 Bxf2+": "If 6.Kxf2, ...Ng4+ forks king and queen. If 6.Kd1, ...Rg6 traps the queen.",
+    "black: e4 e5 Bc4 Bc5 Qh5 Qe7": "Guards e5 and f7 at once.",
+    "black: e4 e5 d4 exd4 c3 d5": "The simple answer to the Danish: hand the pawn back and develop.",
+    "black: e4 e5 f4 Bc5 fxe5 Qh4+": "Punishes 3.fxe5. If 4.Ke2, ...Qxe4 is mate.",
+    "black: e4 e5 f4 Bc5 fxe5 Qh4+ g3 Qxe4+": "Forks the king and the h1 rook.",
     # Caro-Kann Defence: Advance, 4.Nf3 and 6.O-O
     "e4 c6 d4 d5 e5 Bf5 Nf3 e6 Be2 c5 O-O Nc6": "Pressure on d4. After 7.c3 it's the same position as the 6.c3 line.",
     # Caro-Kann Defence: Fantasy, 8.Ke2
@@ -842,14 +958,17 @@ def repertoire() -> list[dict]:
     for o in REPERTOIRE:
         lines = [compile_line(o, line) for line in sorted(o["lines"], key=lambda ln: -ln.get("freq", 0))]
         book.append({"id": o["id"], "name": o["name"], "colour": o["colour"], "fun": o.get("fun", False),
+                     "bullet": o.get("bullet", False),
                      "preview": _preview(o, lines), "lines": lines})
     return book
 
 
-def book_moves() -> dict[str, set[str]]:
+def book_moves(bullet: bool = True) -> dict[str, set[str]]:
     """Every move your repertoire plays from each of your positions, across all openings."""
     moves: dict[str, set[str]] = {}
     for o in repertoire():
+        if o["bullet"] and not bullet:
+            continue
         for ln in o["lines"]:
             for p in ln["plies"]:
                 if "key" in p:
@@ -879,9 +998,10 @@ def stats(fetch) -> dict:
         ({"san": san, "games": len(m["games"]), "avg_loss": round(sum(m["loss"]) / len(m["loss"]), 1) if m["loss"] else None}
          for san, m in p["moves"].items()), key=lambda m: -m["games"])} for key, p in positions.items()}
 
-    book = book_moves()
+    # Your bullet openings don't excuse leaving your main repertoire, e.g. 1...e5 instead of the Pirc.
+    books = {True: book_moves(), False: book_moves(bullet=False)}
 
-    def slip(plies):
+    def slip(plies, book):
         """Your most common move off the line in these positions. Another opening's move from there is not a slip."""
         worst = None
         for p in plies:
@@ -905,9 +1025,9 @@ def stats(fetch) -> dict:
             # Games in the line are those reaching a position no other line has; slips count anywhere past the opening.
             lines[ln["id"]] = {"games": games([p for p in reached if p["key"] not in others]),
                                "deepest": reached[-1]["label"] if reached else None,
-                               "slip": slip([p for p in reached if p["key"] not in opening_level])}
+                               "slip": slip([p for p in reached if p["key"] not in opening_level], books[o["bullet"]])}
         # A game is in the opening once you've played its first move: it reached one of your later positions.
         later = {p["key"]: p for plies in own for p in plies[1:] if p["key"] in positions}
         openings[o["id"]] = {"games": games(later.values()),
-                             "slip": slip([p for p in opening_level.values() if p["key"] in positions])}
+                             "slip": slip([p for p in opening_level.values() if p["key"] in positions], books[o["bullet"]])}
     return {"positions": out_positions, "lines": lines, "openings": openings}

@@ -81,7 +81,7 @@ def test_repertoire_changes_and_previews():
 
 def test_lines_come_most_frequent_first():
     book = {o["id"]: o for o in openings.repertoire()}
-    for opening in ("london", "vienna-gambit", "kid", "caro"):
+    for opening in ("london", "vienna-gambit", "kid", "caro", "grob", "busch-gass"):
         freqs = [ln["freq"] for ln in book[opening]["lines"]]
         assert None not in freqs and freqs == sorted(freqs, reverse=True), opening
     assert book["pirc"]["lines"][0]["id"] == "pirc-austrian" and book["pirc"]["lines"][0]["freq"] is None
@@ -119,3 +119,11 @@ def test_notes_on_moves_both_colours_reach_name_their_colour():
                 paths[o["colour"]] |= {" ".join(sans[:k]) for k in range(1, len(sans) + 1)}
     shared = [k for k in openings.NOTES if k in paths["white"] & paths["black"]]
     assert not shared, shared
+
+
+def test_bullet_section_has_the_grob_and_busch_gass():
+    book = {o["id"]: o for o in openings.repertoire()}
+    assert [o["id"] for o in book.values() if o["bullet"]] == ["grob", "busch-gass"]
+    assert book["grob"]["colour"] == "white" and all(ln["moves"].startswith("1.g4") for ln in book["grob"]["lines"])
+    assert book["busch-gass"]["colour"] == "black" and all(ln["moves"].startswith("1.e4 e5") for ln in book["busch-gass"]["lines"])
+    assert not book["london"]["bullet"] and not book["fun"]["bullet"]
